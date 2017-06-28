@@ -83,6 +83,14 @@ class Show(Command):
         self.command_dictionary["server"] = ['server_id', 'mac', 'ip', 'cluster_id', 'tag',
                                              'where', 'discovered', 'select', 'detail']
 
+        # Subparser for user show
+        parser_user = subparsers.add_parser("image", help='Show user')
+        user_group = parser_user.add_mutually_exclusive_group()
+        user_group.add_argument(
+            "--detail", "-d", action='store_true',
+            help="Flag to indicate if details are requested")
+        self.command_dictionary["user"] = ['detail']
+
         # Subparser for image show
         parser_image = subparsers.add_parser(
             "image", help='Show image')
