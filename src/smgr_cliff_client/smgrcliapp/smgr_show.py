@@ -250,6 +250,13 @@ class Show(Command):
             rest_api_params['match_value'] = None
         return rest_api_params
 
+    def show_user(self, parsed_args):
+        rest_api_params = {}
+        rest_api_params['object'] = 'user'
+        rest_api_params['select'] = getattr(parsed_args, "select", None)
+        return rest_api_params
+    # End of show_user
+
     def show_server(self, parsed_args):
         rest_api_params = {}
         rest_api_params['object'] = 'server'
@@ -397,6 +404,8 @@ class Show(Command):
         # end except
         if parsed_args.which == "server":
             rest_api_params = self.show_server(parsed_args)
+        elif parsed_args.which == "user":
+            rest_api_params = self.show_user(parsed_args)
         elif parsed_args.which == "image":
             rest_api_params = self.show_image(parsed_args)
         elif parsed_args.which == "cluster":

@@ -21,6 +21,9 @@ monkey.patch_all(thread=not 'unittest' in sys.modules)
 import subprocess
 import bottle
 from bottle import route, run, request, abort
+from beaker.middleware import SessionMiddleware
+from cork import Cork
+from cork.backends import JsonBackend
 import ConfigParser
 import paramiko
 import base64
@@ -544,11 +547,27 @@ class VncServerManager():
                                            self._args.listen_port)
         self._pipe_start_app = bottle.app()
 
+        # JSON backend for now
+        self._jb = JsonBackend(directory='.', users_fname='users',
+                         roles_fname='roles',
+                         initialize=False)
+        self._backend = Cork(directory='.')
+
+        # Session
+        config = {
+            'session.encrypt_key': '+9#uc(Xcb2!G?44',
+            'session.type': 'cookie',
+            'session.validate_key': True,
+        }
+        self._pipe_start_app = SessionMiddleware(wrap_app=self._pipe_start_app,
+                                                 config=config)
+
         # All bottle routes to be defined here...
         # REST calls for GET methods (Get Info about existing records)
         bottle.route('/all', 'GET', self.get_server_mgr_config)
         bottle.route('/cluster', 'GET', self.get_cluster)
         bottle.route('/server', 'GET', self.get_server)
+        bottle.route('/user', 'GET', self.get_user)
         bottle.route('/image', 'GET', self.get_image)
         bottle.route('/status', 'GET', self.get_status)
         bottle.route('/server_status', 'GET', self.get_server_status)
@@ -1680,6 +1699,22 @@ class VncServerManager():
                                      self._smgr_trans_log.GET_SMGR_CFG_IMAGE)
         return {"dhcp_host": dhcp_hosts}
     # end get_dhcp_host
+
+    # API Call to list users
+    def get_user(self):
+        # Build dictionary
+        generator = self._backend.list_users()
+        l = []
+        for user in generator:
+            user_dict = {
+                'id': user[0],
+                'role': user[1],
+                'email': user[2],
+                'desc': user[3]
+            }
+            l.append(user_dict)
+        return {'user': l}
+    # End of get_user
 
     # API Call to list images
     def get_image(self):
