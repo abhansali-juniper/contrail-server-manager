@@ -89,6 +89,7 @@ class Show(Command):
         user_group.add_argument(
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
+        parser_user.set_defaults(which='user')
         self.command_dictionary["user"] = ['detail']
 
         # Subparser for image show
@@ -262,6 +263,8 @@ class Show(Command):
         rest_api_params = {}
         rest_api_params['object'] = 'user'
         rest_api_params['select'] = getattr(parsed_args, "select", None)
+        rest_api_params['match_key'] = None
+        rest_api_params['match_value'] = None
         return rest_api_params
     # End of show_user
 
