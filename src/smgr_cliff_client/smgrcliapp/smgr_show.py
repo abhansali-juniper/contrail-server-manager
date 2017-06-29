@@ -84,7 +84,7 @@ class Show(Command):
                                              'where', 'discovered', 'select', 'detail']
 
         # Subparser for user show
-        parser_user = subparsers.add_parser("image", help='Show user')
+        parser_user = subparsers.add_parser("user", help='Show user')
         user_group = parser_user.add_mutually_exclusive_group()
         user_group.add_argument(
             "--detail", "-d", action='store_true',
