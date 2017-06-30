@@ -23,7 +23,7 @@ import bottle
 from bottle import route, run, request, abort
 from beaker.middleware import SessionMiddleware
 from cork import Cork
-from cork.backends import JsonBackend
+from cork.backends import SQLiteBackend
 import ConfigParser
 import paramiko
 import base64
@@ -547,11 +547,12 @@ class VncServerManager():
                                            self._args.listen_port)
         self._pipe_start_app = bottle.app()
 
-        # JSON backend for now
-        self._jb = JsonBackend(directory='.', users_fname='users',
-                         roles_fname='roles',
-                         initialize=False)
-        self._backend = Cork(directory='.')
+        # SQLite Backend
+        self._sqlite_backend = SQLiteBackend(
+            filename='/etc/contrail_smgr/smgr_data.db',
+            users_tname='user_table', roles_tname='role_table',
+            pending_reg_tname='register_table')
+        self._backend = Cork(backend=self._sqlite_backend)
 
         # Session
         config = {
