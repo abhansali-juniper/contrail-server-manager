@@ -87,10 +87,12 @@ class Show(Command):
         parser_user = subparsers.add_parser("user", help='Show user')
         user_group = parser_user.add_mutually_exclusive_group()
         user_group.add_argument(
+            "--select", help=("sql select statement in quotation marks"))
+        user_group.add_argument(
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
         parser_user.set_defaults(which='user')
-        self.command_dictionary["user"] = ['detail']
+        self.command_dictionary["user"] = ['select', 'detail']
 
         # Subparser for role show
         parser_role = subparsers.add_parser("role", help='Show role')

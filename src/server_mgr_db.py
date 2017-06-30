@@ -16,6 +16,7 @@ def_server_db_file = 'smgr_data.db'
 cluster_table = 'cluster_table'
 server_table = 'server_table'
 image_table = 'image_table'
+user_table = 'user_table'
 inventory_table = 'inventory_table'
 server_status_table = 'status_table'
 server_tags_table = 'server_tags_table'
@@ -1068,6 +1069,18 @@ class ServerMgrDb:
             raise e
         return images
     # End of get_image
+
+    def get_user(self, match_dict=None, unmatch_dict=None, detail=False,
+                 field_list=None):
+        try:
+            if not field_list:
+                field_list = ["username"]
+            users = self._get_items(user_table, match_dict, unmatch_dict,
+                                    detail, field_list)
+        except Exception as e:
+            raise e
+        return users
+    # End of get_user
 
     def get_server_tags(self, match_dict=None, unmatch_dict=None,
                   detail=True):

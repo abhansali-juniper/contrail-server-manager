@@ -1704,18 +1704,38 @@ class VncServerManager():
 
     # API Call to list users
     def get_user(self):
-        # Build dictionary
-        generator = self._backend.list_users()
-        l = []
-        for user in generator:
-            user_dict = {
-                'id': user[0],
-                'role': user[1],
-                'email': user[2],
-                'desc': user[3]
-            }
-            l.append(user_dict)
-        return {'user': l}
+        try:
+            ret_data = self.validate_smgr_request("USER", "GET", bottle.request)
+
+            if ret_data["status"] == 0:
+                match_key = ret_data["match_key"]
+                match_value = ret_data["match_value"]
+                select_clause = ret_data["select"]
+                match_dict = {}
+                if match_key:
+                    match_dict[match_key] = match_value
+                detail = ret_data["detail"]
+            users = self._serverDb.get_user(match_dict, detail=detail,
+                                            field_list=select_clause)
+
+        except ServerMgrException as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.GET_SMGR_CFG_USER, False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+        except Exception as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.GET_SMGR_CFG_USER, False)
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.GET_SMGR_CFG_USER)
+        for user in users:
+            if user.get("parameters", None) is not None:
+                user['parameters'] = eval(user['parameters'])
+        return {"user": users}
     # End of get_user
 
     # API Call to list roles
