@@ -98,10 +98,12 @@ class Show(Command):
         parser_role = subparsers.add_parser("role", help='Show role')
         role_group = parser_role.add_mutually_exclusive_group()
         role_group.add_argument(
+            "--select", help=("sql select statement in quotation marks"))
+        role_group.add_argument(
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
         parser_role.set_defaults(which='role')
-        self.command_dictionary["role"] = ['detail']
+        self.command_dictionary["role"] = ['select', 'detail']
 
         # Subparser for image show
         parser_image = subparsers.add_parser(

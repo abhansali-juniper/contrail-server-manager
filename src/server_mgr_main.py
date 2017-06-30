@@ -1740,15 +1740,40 @@ class VncServerManager():
 
     # API Call to list roles
     def get_role(self):
-        # Build dictionary
-        l = []
-        for role in self._backend.list_roles():
-            role_dict = {
-                'id': role[0],
-                'level': role[1]
-            }
-            l.append(role_dict)
-        return {'role': l}
+        try:
+            ret_data = self.validate_smgr_request("ROLE", "GET", bottle.request)
+
+            if ret_data["status"] == 0:
+                match_key = ret_data["match_key"]
+                match_value = ret_data["match_value"]
+                select_clause = ret_data["select"]
+                match_dict = {}
+                if match_key:
+                    match_dict[match_key] = match_value
+                detail = ret_data["detail"]
+            roles = self._serverDb.get_role(match_dict, detail=detail,
+                                            field_list=select_clause)
+
+        except ServerMgrException as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.GET_SMGR_CFG_ROLE,
+                                     False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+        except Exception as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.GET_SMGR_CFG_ROLE,
+                                     False)
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.GET_SMGR_CFG_ROLE)
+        for role in roles:
+            if role.get("parameters", None) is not None:
+                role['parameters'] = eval(role['parameters'])
+        return {"role": roles}
 
     # API Call to list images
     def get_image(self):
