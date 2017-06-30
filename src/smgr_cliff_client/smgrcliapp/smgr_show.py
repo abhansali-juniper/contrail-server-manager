@@ -92,6 +92,15 @@ class Show(Command):
         parser_user.set_defaults(which='user')
         self.command_dictionary["user"] = ['detail']
 
+        # Subparser for role show
+        parser_role = subparsers.add_parser("role", help='Show role')
+        role_group = parser_role.add_mutually_exclusive_group()
+        role_group.add_argument(
+            "--detail", "-d", action='store_true',
+            help="Flag to indicate if details are requested")
+        parser_role.set_defaults(which='role')
+        self.command_dictionary["role"] = ['detail']
+
         # Subparser for image show
         parser_image = subparsers.add_parser(
             "image", help='Show image')
@@ -268,6 +277,14 @@ class Show(Command):
         return rest_api_params
     # End of show_user
 
+    def show_role(self, parsed_args):
+        rest_api_params = {}
+        rest_api_params['object'] = 'role'
+        rest_api_params['select'] = getattr(parsed_args, "select", None)
+        rest_api_params['match_key'] = None
+        rest_api_params['match_value'] = None
+        return rest_api_params
+
     def show_server(self, parsed_args):
         rest_api_params = {}
         rest_api_params['object'] = 'server'
@@ -417,6 +434,8 @@ class Show(Command):
             rest_api_params = self.show_server(parsed_args)
         elif parsed_args.which == "user":
             rest_api_params = self.show_user(parsed_args)
+        elif parsed_args.which == "role":
+            rest_api_params = self.show_role(parsed_args)
         elif parsed_args.which == "image":
             rest_api_params = self.show_image(parsed_args)
         elif parsed_args.which == "cluster":

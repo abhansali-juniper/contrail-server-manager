@@ -569,6 +569,7 @@ class VncServerManager():
         bottle.route('/cluster', 'GET', self.get_cluster)
         bottle.route('/server', 'GET', self.get_server)
         bottle.route('/user', 'GET', self.get_user)
+        bottle.route('/role', 'GET', self.get_role)
         bottle.route('/image', 'GET', self.get_image)
         bottle.route('/status', 'GET', self.get_status)
         bottle.route('/server_status', 'GET', self.get_server_status)
@@ -1716,6 +1717,18 @@ class VncServerManager():
             l.append(user_dict)
         return {'user': l}
     # End of get_user
+
+    # API Call to list roles
+    def get_role(self):
+        # Build dictionary
+        l = []
+        for role in self._backend.list_roles():
+            role_dict = {
+                'id': role[0],
+                'level': role[1]
+            }
+            l.append(role_dict)
+        return {'role': l}
 
     # API Call to list images
     def get_image(self):
