@@ -1301,6 +1301,10 @@ class VncServerManager():
             validation_data = cluster_fields
         elif type == "IMAGE":
             validation_data = image_fields
+        elif type == "USER":
+            validation_data = user_fields
+        elif type == "ROLE":
+            validation_data = role_fields
         elif type == "DHCP_SUBNET":
             validation_data = dhcp_subnet_fields
         elif type == "DHCP_HOST":

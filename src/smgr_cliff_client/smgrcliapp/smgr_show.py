@@ -86,24 +86,28 @@ class Show(Command):
         # Subparser for user show
         parser_user = subparsers.add_parser("user", help='Show user')
         user_group = parser_user.add_mutually_exclusive_group()
-        user_group.add_argument(
+        user_group.add_argument("--user_id", help=("user id for user"))
+        user_select_group = parser_user.add_mutually_exclusive_group()
+        user_select_group.add_argument(
             "--select", help=("sql select statement in quotation marks"))
-        user_group.add_argument(
+        user_select_group.add_argument(
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
         parser_user.set_defaults(which='user')
-        self.command_dictionary["user"] = ['select', 'detail']
+        self.command_dictionary["user"] = ['user_id', 'select', 'detail']
 
         # Subparser for role show
         parser_role = subparsers.add_parser("role", help='Show role')
         role_group = parser_role.add_mutually_exclusive_group()
-        role_group.add_argument(
+        role_group.add_argument("--role_id", help=("role name for role"))
+        role_select_group = parser_role.add_mutually_exclusive_group()
+        role_select_group.add_argument(
             "--select", help=("sql select statement in quotation marks"))
-        role_group.add_argument(
+        role_select_group.add_argument(
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
         parser_role.set_defaults(which='role')
-        self.command_dictionary["role"] = ['select', 'detail']
+        self.command_dictionary["role"] = ['role_id', 'select', 'detail']
 
         # Subparser for image show
         parser_image = subparsers.add_parser(
@@ -276,8 +280,14 @@ class Show(Command):
         rest_api_params = {}
         rest_api_params['object'] = 'user'
         rest_api_params['select'] = getattr(parsed_args, "select", None)
-        rest_api_params['match_key'] = None
-        rest_api_params['match_value'] = None
+
+        if getattr(parsed_args, "user_id", None):
+            rest_api_params['match_key'] = 'username'
+            rest_api_params['match_value'] = getattr(parsed_args, "user_id",
+                                                     None)
+        else:
+            rest_api_params['match_key'] = None
+            rest_api_params['match_value'] = None
         return rest_api_params
     # End of show_user
 
@@ -285,8 +295,14 @@ class Show(Command):
         rest_api_params = {}
         rest_api_params['object'] = 'role'
         rest_api_params['select'] = getattr(parsed_args, "select", None)
-        rest_api_params['match_key'] = None
-        rest_api_params['match_value'] = None
+
+        if getattr(parsed_args, "role_id", None):
+            rest_api_params['match_key'] = 'role'
+            rest_api_params['match_value'] = getattr(parsed_args, "role_id",
+                                                     None)
+        else:
+            rest_api_params['match_key'] = None
+            rest_api_params['match_value'] = None
         return rest_api_params
 
     def show_server(self, parsed_args):
