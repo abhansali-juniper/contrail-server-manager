@@ -1789,6 +1789,10 @@ class VncServerManager():
 
     # API Call to list roles
     def get_role(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("ROLE", "GET", bottle.request)
 
