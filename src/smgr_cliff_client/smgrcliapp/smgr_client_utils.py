@@ -2,6 +2,8 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+import os
+import sys
 from StringIO import StringIO
 import pycurl
 import json
@@ -170,7 +172,7 @@ class SmgrClientUtils():
 
     @staticmethod
     def send_REST_request(ip, port, obj=None, rest_api_params=None,
-                          payload=None, match_key=None, match_value=None, detail=False, force=False, method="PUT"):
+                          payload=None, match_key=None, match_value=None, detail=False, force=False, method="PUT", cookie=None):
         try:
             args_str = ""
             show_pass = False
@@ -226,6 +228,9 @@ class SmgrClientUtils():
                 return None
             conn = pycurl.Curl()
             conn.setopt(pycurl.URL, url)
+            if cookie is not None:
+                conn.setopt(pycurl.COOKIEJAR, cookie)
+                conn.setopt(pycurl.COOKIEFILE, cookie)
             if obj != "image/upload":
                 conn.setopt(pycurl.HTTPHEADER, headers)
             if method == "POST" and payload:
@@ -249,6 +254,56 @@ class SmgrClientUtils():
         except Exception as e:
             return "Error: " + str(e)
             # end def send_REST_request
+
+    @staticmethod
+    def send_authed_REST_request(ip, port, obj=None, rest_api_params=None,
+                                 payload=None, match_key=None, match_value=None,
+                                 detail=False, force=False, method="PUT"):
+        # Cookie file location
+        COOKIE_FILE = 'cookie.txt'
+
+        # Get credentials
+        login_username = os.environ.get('OS_USERNAME')
+        login_password = os.environ.get('OS_PASSWORD')
+
+        # Authenticate if credentials supplied
+        if login_username is not None and login_password is not None:
+            # Logout if necessary
+            response = SmgrClientUtils.send_REST_request(
+                ip=ip, port=port, obj='current_user', method='GET', cookie=COOKIE_FILE)
+            response_json = None
+            try:
+                response_json = json.loads(response)
+            except Exception as e:
+                pass
+            logged_in = type(response_json) is dict and str(response) != '{}'
+            if logged_in:
+                sys.stderr.write('Current user: ' + response_json['user'] +
+                                 '\n')
+            if logged_in and response_json['user'] != login_username:
+                sys.stderr.write('Attempting logout.\n')
+                SmgrClientUtils.send_REST_request(
+                    ip=ip, port=port, obj='logout', method='GET',
+                    cookie=COOKIE_FILE)
+                logged_in = False
+
+            # Login if necessary
+            if not logged_in:
+                credentials = {
+                    'username': login_username,
+                    'password': login_password
+                }
+                sys.stderr.write('Attempting login.\n')
+                sys.stderr.write(str(SmgrClientUtils.send_REST_request(
+                    ip=ip, port=port, obj='login', payload=credentials,
+                    method='POST', cookie=COOKIE_FILE)) + '\n')
+
+        # send REST request and return
+        return SmgrClientUtils.send_REST_request(
+            ip=ip, port=port, obj=obj, rest_api_params=rest_api_params,
+            payload=payload, match_key=match_key, match_value=match_value,
+            detail=detail, force=force, method=method, cookie=COOKIE_FILE)
+    # end def send_authed_REST_request
 
     @staticmethod
     def convert_json_to_list(obj, json_resp):

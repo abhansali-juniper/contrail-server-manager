@@ -586,6 +586,10 @@ class VncServerManager():
         bottle.route('/InventoryConf', 'GET', self._server_inventory_obj.get_inv_conf_details)
         bottle.route('/InventoryInfo', 'GET', self._server_inventory_obj.get_inventory_info)
         bottle.route('/defaults', 'GET', self.get_defaults)
+        bottle.route('/current_user', 'GET', self.get_current_user)
+        bottle.route('/login_success', 'GET', self.get_login_success)
+        bottle.route('/login_failed', 'GET', self.get_login_failed)
+        bottle.route('/logout', 'GET', self.logout)
 
         #bottle.route('/logs/<filepath:path>', 'GET', self.get_defaults)
         @route('/logs/<filename:re:.*>')
@@ -666,8 +670,45 @@ class VncServerManager():
         bottle.route('/server/provision', 'POST', self.provision_server)
         bottle.route('/interface_created', 'POST', self.interface_created)
         bottle.route('/run_inventory', 'POST', self._server_inventory_obj.run_inventory)
+        bottle.route('/login', 'POST', self.login)
 
         self.verify_smlite_provision()
+
+    # Ensure permissions
+    def sufficient_perms(self, username=None, role=None, fixed_role=False):
+        # Get current user
+        current_user = None
+        try:
+            current_user = self._backend.current_user
+        except Exception as e:
+            return False
+
+        # Ensure username requirements
+        if username is not None and username != current_user.username:
+            return False
+
+        # Ensure role requirements
+        if role is not None:
+            if fixed_role:
+                if role != current_user.role:
+                    return False
+            else:
+                # Determine required level
+                req_level = None
+                roles = self._backend.list_roles()
+                for r in roles:
+                    if r[0] == role:
+                        req_level = r[1]
+
+                # Ensure level requirements
+                if req_level is None:
+                    return False
+                elif req_level > current_user.level:
+                    return False
+
+        # Requirements met
+        return True
+    # End of sufficient_perms
 
     def get_pipe_start_app(self):
         return self._pipe_start_app
@@ -1708,6 +1749,10 @@ class VncServerManager():
 
     # API Call to list users
     def get_user(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("USER", "GET", bottle.request)
 
@@ -4503,6 +4548,26 @@ class VncServerManager():
         print "Interface Created"
         self.provision_server()
 
+    # Login
+    def login(self):
+        username = request.json['username'].encode('ascii')
+        password = request.json['password'].encode('ascii')
+        self._backend.login(username=username, password=password)
+
+        # Return whether login was successful
+        try:
+            if self._backend.current_user.username == username:
+                return 'Login successful.'
+            return 'Login failed.'
+        except Exception as e:
+            return 'Login failed.'
+    # End of login
+
+    # Logout
+    def logout(self):
+        self._backend.logout()
+    # End of logout
+
     def log_trace(self):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         if not exc_type or not exc_value or not exc_traceback:
@@ -4639,6 +4704,23 @@ class VncServerManager():
                                                                             None)
             abort(404, resp_msg)
 
+    # Current user page
+    def get_current_user(self):
+        try:
+            current_user = self._backend.current_user
+        except Exception as e:
+            return {}
+        return {'user': current_user.username}
+
+    # Login success page
+    def get_login_success(self):
+        return 'Login success.'
+    # End of get_login_success
+
+    # Login failed page
+    def get_login_failed(self):
+        return 'Login failed.'
+    # End of get_login_failed
 
     def update_cluster_provision(self, cluster_id, role_sequence):
         if not cluster_id or not role_sequence:
