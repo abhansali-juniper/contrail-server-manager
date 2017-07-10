@@ -266,26 +266,28 @@ class SmgrClientUtils():
         login_username = os.environ.get('OS_USERNAME')
         login_password = os.environ.get('OS_PASSWORD')
 
+        # Determine currently logged in user
+        response = SmgrClientUtils.send_REST_request(
+            ip=ip, port=port, obj='current_user', method='GET', cookie=COOKIE_FILE)
+        response_json = None
+        try:
+            response_json = json.loads(response)
+        except Exception as e:
+            pass
+        logged_in = type(response_json) is dict and str(response) != '{}'
+
         # Authenticate if credentials supplied
         if login_username is not None and login_password is not None:
             # Logout if necessary
-            response = SmgrClientUtils.send_REST_request(
-                ip=ip, port=port, obj='current_user', method='GET', cookie=COOKIE_FILE)
-            response_json = None
-            try:
-                response_json = json.loads(response)
-            except Exception as e:
-                pass
-            logged_in = type(response_json) is dict and str(response) != '{}'
             if logged_in:
                 sys.stderr.write('Current user: ' + response_json['user'] +
                                  '\n')
-            if logged_in and response_json['user'] != login_username:
-                sys.stderr.write('Attempting logout.\n')
-                SmgrClientUtils.send_REST_request(
-                    ip=ip, port=port, obj='logout', method='GET',
-                    cookie=COOKIE_FILE)
-                logged_in = False
+                if response_json['user'] != login_username:
+                    sys.stderr.write('Attempting logout.\n')
+                    SmgrClientUtils.send_REST_request(
+                        ip=ip, port=port, obj='logout', method='GET',
+                        cookie=COOKIE_FILE)
+                    logged_in = False
 
             # Login if necessary
             if not logged_in:
@@ -297,6 +299,14 @@ class SmgrClientUtils():
                 sys.stderr.write(str(SmgrClientUtils.send_REST_request(
                     ip=ip, port=port, obj='login', payload=credentials,
                     method='POST', cookie=COOKIE_FILE)) + '\n')
+
+        # Logout if no credentials supplied
+        elif logged_in:
+            sys.stderr.write('Attempting logout.\n')
+            SmgrClientUtils.send_REST_request(
+                ip=ip, port=port, obj='logout', method='GET',
+                cookie=COOKIE_FILE)
+
 
         # send REST request and return
         return SmgrClientUtils.send_REST_request(
