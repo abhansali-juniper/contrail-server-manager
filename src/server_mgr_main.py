@@ -725,6 +725,10 @@ class VncServerManager():
     # REST API call to get sever manager config - configuration of all
     # clusters & all servers is returned.
     def get_server_mgr_config(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_mgr_config")
         config = {}
         try:
@@ -752,6 +756,10 @@ class VncServerManager():
     # end get_server_mgr_config
 
     def get_table_columns(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "get_table_columns")
         query_args = parse_qs(urlparse(request.url).query,
                               keep_blank_values=True)
@@ -775,6 +783,10 @@ class VncServerManager():
     # above. This call additionally provides a way of getting all the
     # configuration for a particular cluster.
     def get_cluster(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "get_cluster")
         try:
             ret_data = self.validate_smgr_request("CLUSTER", "GET",
@@ -818,6 +830,10 @@ class VncServerManager():
     # end get_cluster
 
     def get_server_logs(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             query_args = parse_qs(bottle.request.query_string,
                                     keep_blank_values=True)
@@ -871,6 +887,10 @@ class VncServerManager():
     # dictionary. Since all these are synced up, we return info from
     # dictionaty variable itself.
     def get_server_tags(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_tags")
         try:
             query_args = parse_qs(urlparse(bottle.request.url).query,
@@ -1576,6 +1596,10 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         ret_data = None
         servers = []
         try:
@@ -1691,6 +1715,10 @@ class VncServerManager():
 
     #API Call to list DHCP Hosts
     def get_dhcp_subnet(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("DHCP_SUBNET", "GET",
                                                          bottle.request)
@@ -1720,6 +1748,10 @@ class VncServerManager():
 
     #API Call to list DHCP Hosts
     def get_dhcp_host(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("DHCP_HOST", "GET",
                                                          bottle.request)
@@ -1830,6 +1862,10 @@ class VncServerManager():
 
     # API Call to list images
     def get_image(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='admin', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("IMAGE", "GET",
                                                          bottle.request)
