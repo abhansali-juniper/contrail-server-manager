@@ -726,7 +726,7 @@ class VncServerManager():
     # clusters & all servers is returned.
     def get_server_mgr_config(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_mgr_config")
@@ -757,7 +757,7 @@ class VncServerManager():
 
     def get_table_columns(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_table_columns")
@@ -784,7 +784,7 @@ class VncServerManager():
     # configuration for a particular cluster.
     def get_cluster(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_cluster")
@@ -831,7 +831,7 @@ class VncServerManager():
 
     def get_server_logs(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
@@ -888,7 +888,7 @@ class VncServerManager():
     # dictionaty variable itself.
     def get_server_tags(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_tags")
@@ -1597,7 +1597,7 @@ class VncServerManager():
     # configuration is returned.
     def get_server(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         ret_data = None
@@ -1716,7 +1716,7 @@ class VncServerManager():
     #API Call to list DHCP Hosts
     def get_dhcp_subnet(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1749,7 +1749,7 @@ class VncServerManager():
     #API Call to list DHCP Hosts
     def get_dhcp_host(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1782,7 +1782,7 @@ class VncServerManager():
     # API Call to list users
     def get_user(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1822,7 +1822,7 @@ class VncServerManager():
     # API Call to list roles
     def get_role(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1863,7 +1863,7 @@ class VncServerManager():
     # API Call to list images
     def get_image(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='admin', fixed_role=True):
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
             return 'Error: Insufficient permissions.'
 
         try:
