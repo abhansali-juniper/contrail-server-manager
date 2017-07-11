@@ -675,7 +675,7 @@ class VncServerManager():
         self.verify_smlite_provision()
 
     # Ensure permissions
-    def sufficient_perms(self, username=None, role=None, fixed_role=False):
+    def sufficient_perms(self, role=None, fixed_role=False, id=None):
         # Get current user
         current_user = None
         try:
@@ -683,15 +683,12 @@ class VncServerManager():
         except Exception as e:
             return False
 
-        # Ensure username requirements
-        if username is not None and username != current_user.username:
-            return False
-
-        # Ensure role requirements
+        # Check role requirements are met
+        reqs_met = True
         if role is not None:
             if fixed_role:
                 if role != current_user.role:
-                    return False
+                    reqs_met = False
             else:
                 # Determine required level
                 req_level = None
@@ -702,12 +699,29 @@ class VncServerManager():
 
                 # Ensure level requirements
                 if req_level is None:
-                    return False
+                    reqs_met = False
                 elif req_level > current_user.level:
-                    return False
+                    reqs_met = False
+
+        # Check object ownership
+        if not reqs_met:
+            # Get list of owned objects
+            match_dict = {'where': 'username = \'' + current_user.username
+                                   + '\''}
+            objects_owned = None
+            try:
+                objects_owned = self._serverDb.get_user(
+                    match_dict=match_dict, field_list=["objects"])[0]['objects']
+            except Exception as e:
+                sys.stderr.write(str(e) + '\n')
+                return False
+
+            # Check if object is owned
+            if id in objects_owned:
+                reqs_met = True
 
         # Requirements met
-        return True
+        return reqs_met
     # End of sufficient_perms
 
     def get_pipe_start_app(self):
