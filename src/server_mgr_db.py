@@ -83,6 +83,16 @@ class ServerMgrDb:
                                image_table + """ (id TEXT PRIMARY KEY,
                     version TEXT, type TEXT, path TEXT,
                     parameters TEXT)""")
+                # Create user table
+                cursor.execute("CREATE TABLE IF NOT EXISTS " +
+                               user_table + """ (username TEXT PRIMARY KEY,
+                    role TEXT, hash TEXT, email_addr TEXT, desc TEXT,
+                    creation_date TEXT, last_login TEXT,
+                    objects TEXT DEFAULT '[]')""")
+                # Create role table
+                cursor.execute("CREATE TABLE IF NOT EXISTS " +
+                               role_table + """ (role TEXT PRIMARY KEY,
+                               level INTEGER)""")
                 # Create status table
                 cursor.execute("CREATE TABLE IF NOT EXISTS " +
                                server_status_table + """ (id TEXT PRIMARY KEY,
