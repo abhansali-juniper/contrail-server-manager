@@ -14,6 +14,7 @@ import glob
 import sys
 import re
 import datetime
+import ast
 import json
 import argparse
 from gevent import monkey
@@ -710,8 +711,9 @@ class VncServerManager():
                                    + '\''}
             objects_owned = None
             try:
-                objects_owned = self._serverDb.get_user(
-                    match_dict=match_dict, field_list=["objects"])[0]['objects']
+                objects_owned = ast.literal_eval(self._serverDb.get_user(
+                    match_dict=match_dict,
+                    field_list=["objects"])[0]['objects'])
             except Exception as e:
                 sys.stderr.write(str(e) + '\n')
                 return False
@@ -1610,10 +1612,6 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
-            return 'Error: Insufficient permissions.'
-
         ret_data = None
         servers = []
         try:
@@ -1623,6 +1621,15 @@ class VncServerManager():
                 match_key = ret_data["match_key"]
                 match_value = ret_data["match_value"]
                 select_clause = ret_data["select"]
+
+                # Ensure permissions
+                id = None
+                if match_key == 'id' and match_value:
+                    id = match_value
+                if not self.sufficient_perms(role='administrator',
+                                             fixed_role=True, id=id):
+                    return 'Error: Insufficient permissions.'
+
                 match_dict = {}
                 if match_key == "tag":
                     match_dict = self._process_server_tags(match_value)
@@ -1876,10 +1883,6 @@ class VncServerManager():
 
     # API Call to list images
     def get_image(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
-            return 'Error: Insufficient permissions.'
-
         try:
             ret_data = self.validate_smgr_request("IMAGE", "GET",
                                                          bottle.request)
@@ -1887,6 +1890,15 @@ class VncServerManager():
                 match_key = ret_data["match_key"]
                 match_value = ret_data["match_value"]
                 select_clause = ret_data["select"]
+
+                # Ensure permissions
+                id = None
+                if match_key == 'id' and match_value:
+                    id = match_value
+                if not self.sufficient_perms(role='administrator',
+                                             fixed_role=True, id=id):
+                    return 'Error: Insufficient permissions.'
+
                 match_dict = {}
                 if match_key:
                     match_dict[match_key] = match_value
