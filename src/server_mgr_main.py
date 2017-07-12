@@ -705,7 +705,7 @@ class VncServerManager():
                     reqs_met = False
 
         # Check object ownership
-        if not reqs_met:
+        if id and not reqs_met:
             # Get list of owned objects
             match_dict = {'where': 'username = \'' + current_user.username
                                    + '\''}
@@ -721,6 +721,24 @@ class VncServerManager():
             # Check if object is owned
             if id in objects_owned:
                 reqs_met = True
+
+            # Check cluster ownership
+            else:
+                for obj in objects_owned:
+                    # Determine whether object is a cluster
+                    match_dict = {'where': 'id = \'' + obj + '\''}
+                    is_cluster = bool(self._serverDb.get_cluster(
+                        match_dict=match_dict, field_list=["id"]))
+
+                    # Check whether passed in object belongs to cluster
+                    if is_cluster:
+                        match_dict = {'where': 'id = \'' + id +
+                                               '\' AND cluster_id = \'' +
+                                               obj + '\''}
+                        belongs = bool(self._serverDb.get_server(
+                            match_dict=match_dict, field_list=["id"]))
+                        if belongs:
+                            return True
 
         # Requirements met
         return reqs_met
