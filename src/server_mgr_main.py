@@ -730,13 +730,30 @@ class VncServerManager():
                     is_cluster = bool(self._serverDb.get_cluster(
                         match_dict=match_dict, field_list=["id"]))
 
-                    # Check whether passed in object belongs to cluster
+                    # Check whether id belongs to cluster
                     if is_cluster:
+                        # Check whether id is server in cluster
                         match_dict = {'where': 'id = \'' + id +
                                                '\' AND cluster_id = \'' +
                                                obj + '\''}
                         belongs = bool(self._serverDb.get_server(
                             match_dict=match_dict, field_list=["id"]))
+
+                        # Check whether id is base_image_id in cluster
+                        match_dict = {'where': 'id = \'' + obj +
+                                               '\' AND base_image_id = \'' +
+                                               id + '\''}
+                        belongs = belongs or bool(self._serverDb.get_cluster(
+                            match_dict=match_dict, field_list=["id"]))
+
+                        # Check whether id is package_image_id in cluster
+                        match_dict = {'where': 'id = \'' + obj +
+                                               '\' AND package_image_id = \'' +
+                                               id + '\''}
+                        belongs = belongs or bool(self._serverDb.get_cluster(
+                            match_dict=match_dict, field_list=["id"]))
+
+                        # Return true if id is in cluster
                         if belongs:
                             return True
 
