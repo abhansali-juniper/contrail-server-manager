@@ -77,12 +77,16 @@ class ServerMgrDb:
                 cursor.execute("CREATE TABLE IF NOT EXISTS " + cluster_table +
                                """ (id TEXT PRIMARY KEY,
                                     parameters TEXT,
-                                    email TEXT)""")
+                                    email TEXT,
+                                    R TEXT DEFAULT '[]',
+                                    W TEXT DEFAULT '[]')""")
                 # Create image table
                 cursor.execute("CREATE TABLE IF NOT EXISTS " +
                                image_table + """ (id TEXT PRIMARY KEY,
                     version TEXT, type TEXT, path TEXT,
-                    parameters TEXT)""")
+                    parameters TEXT,
+                    R TEXT DEFAULT '[]',
+                    W TEXT DEFAULT '[]')""")
                 # Create status table
                 cursor.execute("CREATE TABLE IF NOT EXISTS " +
                                server_status_table + """ (id TEXT PRIMARY KEY,
@@ -104,6 +108,8 @@ class ServerMgrDb:
                          tag1 TEXT, tag2 TEXT, tag3 TEXT,
                          tag4 TEXT, tag5 TEXT, tag6 TAXT, tag7 TEXT,
                          network TEXT, contrail TEXT, top_of_rack TEXT,
+                         R TEXT DEFAULT '[]',
+                         W TEXT DEFAULT '[]',
                          UNIQUE (id))""")
                 # Create inventory table
                 cursor.execute(
