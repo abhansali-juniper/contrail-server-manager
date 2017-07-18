@@ -491,7 +491,7 @@ class Show(Command):
                 self.app.report_missing_config("smgr_port")
         except Exception as e:
             sys.exit("Exception: %s : Error getting smgr config" % e.message)
-        resp = smgrutils.send_REST_request(self.smgr_ip, self.smgr_port, rest_api_params=rest_api_params,
+        resp = smgrutils.send_authed_REST_request(self.smgr_ip, self.smgr_port, rest_api_params=rest_api_params,
                                           detail=detail, method='GET')
 
         json_format = getattr(parsed_args, "json", False)
