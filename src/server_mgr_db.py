@@ -421,7 +421,7 @@ class ServerMgrDb:
 
     def _get_items(
         self, table_name, match_dict=None,
-        unmatch_dict=None, detail=False, always_fields=None):
+        unmatch_dict=None, detail=False, always_fields=None, username=None):
         try:
             with self._con:
                 cursor = self._con.cursor()
@@ -437,6 +437,8 @@ class ServerMgrDb:
                     where = match_dict.get("where", None)
                 if where:
                     select_str += " WHERE " + where
+                    if username:
+                        select_str += " AND R LIKE '%''" + username + "''%' "
                 else:
                     if match_dict:
                         match_list = ["%s = \'%s\'" %(
@@ -447,6 +449,11 @@ class ServerMgrDb:
                     if match_list:
                         match_str = " and ".join(match_list)
                         select_str+= " WHERE " + match_str
+                        if username:
+                            select_str += " AND R LIKE '%''" + username + \
+                                          "''%' "
+                    elif username:
+                        select_str += " WHERE R LIKE '%''" + username + "''%' "
                 cursor.execute(select_str)
             rows = [x for x in cursor]
             cols = [x[0] for x in cursor.description]
@@ -1065,13 +1072,13 @@ class ServerMgrDb:
     # End of modify_dhcp_subnet
 
     def get_image(self, match_dict=None, unmatch_dict=None,
-                  detail=False, field_list=None):
+                  detail=False, field_list=None, username=None):
         try:
             if not field_list:
                 field_list = ["id"]
             images = self._get_items(
                 image_table, match_dict,
-                unmatch_dict, detail, field_list)
+                unmatch_dict, detail, field_list, username=username)
         except Exception as e:
             raise e
         return images

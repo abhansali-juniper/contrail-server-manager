@@ -1863,7 +1863,11 @@ class VncServerManager():
     # API Call to list images
     def get_image(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+        else:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1879,7 +1883,8 @@ class VncServerManager():
                 detail = ret_data["detail"]
             images = self._serverDb.get_image(match_dict,
                                               detail=detail,
-                                              field_list=select_clause)
+                                              field_list=select_clause,
+                                              username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.GET_SMGR_CFG_IMAGE, False)
