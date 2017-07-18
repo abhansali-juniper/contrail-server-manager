@@ -176,6 +176,51 @@ class ServerMgrDb:
             raise e
     # End of __init__
 
+    def has_permission(self, username, id, type, read=False, write=False):
+        # Ensure username, id, and type are specified
+        if not (username and id and type):
+            return False
+
+        # If no permissions are being checked, return true
+        if not (read or write):
+            return True
+
+        # Query database to check for permissions
+        # Determine table_name
+        table_name = None
+        if type == 'server':
+            table_name = server_table
+        elif type == 'cluster':
+            table_name = cluster_table
+        elif type == 'image':
+            table_name = image_table
+        else:
+            return False
+
+        # Build query
+        query_str = "SELECT * FROM " + table_name + " WHERE id = '" + id + "'"
+        if read:
+            query_str += " AND R LIKE '%''" + username + "''%'"
+        if write:
+            query_str += " AND W LIKE '%''" + username + "''%'"
+
+        # Run query
+        with self._con:
+            cursor = self._con.cursor()
+            cursor.execute(query_str)
+        rows = [x for x in cursor]
+        cols = [x[0] for x in cursor.description]
+        items = []
+        for row in rows:
+            item = {}
+            for prop, val in zip(cols, row):
+                item[prop] = val
+            items.append(item)
+
+        # Return
+        return bool(items)
+    # End of has_permission
+
     def update_image_version(self, image):
         #pdb.set_trace()
         if not image:
