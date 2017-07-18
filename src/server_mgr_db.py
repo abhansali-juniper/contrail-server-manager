@@ -1153,7 +1153,7 @@ class ServerMgrDb:
 
 
     def get_server(self, match_dict=None, unmatch_dict=None,
-                   detail=False, field_list=None):
+                   detail=False, field_list=None, username=None):
         try:
             if match_dict and match_dict.get("mac_address", None):
                 if match_dict["mac_address"]:
@@ -1165,7 +1165,7 @@ class ServerMgrDb:
                 field_list = ["id", "mac_address", "ip_address"]
             servers = self._get_items(
                 server_table, match_dict,
-                unmatch_dict, detail, field_list)
+                unmatch_dict, detail, field_list, username=username)
         except Exception as e:
             raise e
         return servers
@@ -1196,13 +1196,14 @@ class ServerMgrDb:
     # End of get_inventory
 
     def get_cluster(self, match_dict=None,
-                unmatch_dict=None, detail=False, field_list=None):
+                unmatch_dict=None, detail=False, field_list=None,
+                    username=None):
         try:
             if not field_list:
                 field_list = ["id"]
             cluster = self._get_items(
                 cluster_table, match_dict,
-                unmatch_dict, detail, field_list)
+                unmatch_dict, detail, field_list, username=username)
         except Exception as e:
             raise e
         return cluster

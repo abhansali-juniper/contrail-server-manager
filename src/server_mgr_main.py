@@ -783,8 +783,16 @@ class VncServerManager():
     # above. This call additionally provides a way of getting all the
     # configuration for a particular cluster.
     def get_cluster(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        # If admin, show all clusters
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, show only clusters with read permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, show nothing
+        else:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_cluster")
@@ -801,7 +809,7 @@ class VncServerManager():
                 detail = ret_data["detail"]
                 entity = self._serverDb.get_cluster(
                     match_dict, detail=detail,
-                    field_list=select_clause)
+                    field_list=select_clause, username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.GET_SMGR_CFG_CLUSTER,
@@ -1596,8 +1604,16 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        # If admin, show all servers
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, show only servers with read permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, show nothing
+        else:
             return 'Error: Insufficient permissions.'
 
         ret_data = None
@@ -1616,7 +1632,8 @@ class VncServerManager():
                     match_dict[match_key] = match_value
                 detail = ret_data["detail"]
                 servers = self._serverDb.get_server(
-                    match_dict, detail=detail, field_list=select_clause)
+                    match_dict, detail=detail, field_list=select_clause,
+                    username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.GET_SMGR_CFG_SERVER, False)
