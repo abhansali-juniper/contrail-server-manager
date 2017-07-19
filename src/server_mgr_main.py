@@ -2511,6 +2511,19 @@ class VncServerManager():
         return resp_msg
 
     def put_server(self):
+        # Detect whether logged in and whether admin
+        logged_in = False
+        is_admin = False
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            is_admin = True
+            logged_in = True
+        elif self.sufficient_perms():
+            logged_in = True
+
+        # if not logged in, don't give access
+        if not logged_in:
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         if (not entity):
             msg = 'Server MAC or server_id not specified'
@@ -3837,6 +3850,18 @@ class VncServerManager():
     # If no server if provided, information about all the servers
     # in server manager configuration is returned.
     def reimage_server(self):
+        # If admin, allow anything
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only reimaging servers with write permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "reimage_server")
         try:
             ret_data = self.validate_smgr_request("SERVER", "REIMAGE", bottle.request)
@@ -3857,7 +3882,8 @@ class VncServerManager():
             base_image = {}
             if base_image_id:
                 base_image_id, base_image = self.get_base_image(base_image_id)
-            servers = self._serverDb.get_server(match_dict, detail=True)
+            servers = self._serverDb.get_server(match_dict, detail=True,
+                                                username=username)
             if len(servers) == 0:
                 msg = "No Servers found for %s" % (match_value)
                 self.log_and_raise_exception(msg)
