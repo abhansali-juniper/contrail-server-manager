@@ -2650,6 +2650,19 @@ class VncServerManager():
     # created in cobbler. This is similar to function above (add_image),
     # but this call actually upload ISO image from client to the server.
     def upload_image(self):
+        # Detect whether logged in and whether admin
+        logged_in = False
+        is_admin = False
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            is_admin = True
+            logged_in = True
+        elif self.sufficient_perms():
+            logged_in = True
+
+        # if not logged in, don't give access
+        if not logged_in:
+            return 'Error: Insufficient permissions.'
+
         image_id = bottle.request.forms.id
         image_version = bottle.request.forms.version
         image_type = bottle.request.forms.type
@@ -2783,7 +2796,9 @@ class VncServerManager():
             image_data.update({'path': dest})
             image_data.update({'parameters' : image_params})
             if add_db:
-                self._serverDb.add_image(image_data)
+                username = self._backend.current_user.username
+                self._serverDb.add_image(image_data, admin=is_admin,
+                                         username=username)
             # Removing the package/image from /etc/contrail_smgr/images/ after it has been added
             os.remove(dest)
         except subprocess.CalledProcessError as e:
@@ -3329,6 +3344,18 @@ class VncServerManager():
     # cluster, all servers in that cluster and associated roles are also
     # deleted.
     def delete_cluster(self):
+        # If admin, allow deletion of any cluster
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only deletion with write permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_cluster")
         try:
             ret_data = self.validate_smgr_request("CLUSTER", "DELETE",
@@ -3339,7 +3366,7 @@ class VncServerManager():
                 match_dict = {}
                 if match_key:
                     match_dict[match_key] = match_value
-                self._serverDb.delete_cluster(match_dict)
+                self._serverDb.delete_cluster(match_dict, username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                 self._smgr_trans_log.DELETE_SMGR_CFG_CLUSTER,
@@ -3366,6 +3393,18 @@ class VncServerManager():
 
     # API call to delete a server from the configuration.
     def delete_server(self):
+        # If admin, allow deletion of any server
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only deletion with write permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_server")
         try:
             ret_data = self.validate_smgr_request("SERVER", "DELETE",
@@ -3381,8 +3420,8 @@ class VncServerManager():
                     match_dict[match_key] = match_value
 
             servers = self._serverDb.get_server(
-                match_dict, detail= True)
-            self._serverDb.delete_server(match_dict)
+                match_dict, detail= True, username=username)
+            self._serverDb.delete_server(match_dict, username=username)
             # delete the system entries from cobbler
             for server in servers:
                 if server['id'] and self._smgr_cobbler:
@@ -3496,6 +3535,18 @@ class VncServerManager():
 
     # API Call to delete an image
     def delete_image(self):
+        # If admin, allow deletion of any server
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only deletion with write permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_image")
         try:
             ret_data = self.validate_smgr_request("IMAGE", "DELETE",
@@ -3506,7 +3557,8 @@ class VncServerManager():
             else:
                 msg = "Validation failed"
                 self.log_and_raise_exception(msg)
-            images = self._serverDb.get_image(image_dict, detail=True)
+            images = self._serverDb.get_image(image_dict, detail=True,
+                                              username=username)
             if not images:
                 msg = "Image %s doesn't exist" % (image_dict)
                 self.log_and_raise_exception(msg)
@@ -3587,7 +3639,7 @@ class VncServerManager():
                 if os.path.exists(kseed_path):
                     os.remove(kseed_path)
             # remove the entry from DB
-            self._serverDb.delete_image(image_dict)
+            self._serverDb.delete_image(image_dict, username=username)
         except ServerMgrException as e:
             self.log_trace()
             self._smgr_trans_log.log(bottle.request,
@@ -3615,6 +3667,10 @@ class VncServerManager():
     # API to create the server manager configuration DB from provided JSON
     # file.
     def create_server_mgr_config(self):
+        # If not admin, don't allow
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         if not entity:
             msg =  "No JSON config file specified"

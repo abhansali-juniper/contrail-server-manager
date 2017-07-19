@@ -408,7 +408,7 @@ class ServerMgrDb:
     # Match dict is dictionary of columns and values to match for.
     # unmatch dict is not of dictionaty of columns and values to match for.
     def _delete_row(self, table_name,
-                    match_dict=None, unmatch_dict=None):
+                    match_dict=None, unmatch_dict=None, username=None):
         try:
             delete_str = "DELETE FROM %s" %(table_name)
             # form a string to provide to where match clause
@@ -419,6 +419,8 @@ class ServerMgrDb:
 
             if where:
                 delete_str += " WHERE " + where
+                if username:
+                    delete_str += " AND W LIKE '%''" + username + "''%' "
             else:
                 if match_dict:
                     match_list = ["%s = \'%s\'" %(
@@ -429,6 +431,10 @@ class ServerMgrDb:
                 if match_list:
                     match_str = " and ".join(match_list)
                     delete_str+= " WHERE " + match_str
+                    if username:
+                        delete_str += " AND W LIKE '%''" + username + "''%' "
+                elif username:
+                    delete_str += " WHERE W LIKE '%''" + username + "''%' "
 
             with self._con:
                 cursor = self._con.cursor()
@@ -701,7 +707,7 @@ class ServerMgrDb:
             return
     # End of server_discovery
 
-    def add_image(self, image_data):
+    def add_image(self, image_data, admin=False, username=None):
         try:
             # covert all unicode strings in dict
             image_data = ServerMgrUtil.convert_unicode(image_data)
@@ -709,12 +715,33 @@ class ServerMgrDb:
             image_parameters = image_data.pop("parameters", None)
             if image_parameters is not None:
                 image_data['parameters'] = str(image_parameters)
+
+            # If admin, give all other users read access to image
+            if admin:
+                users = self.get_user(field_list=['username'])
+                user_str = '['
+                first = True
+                for user in users:
+                    if not first:
+                        user_str += ', '
+                    else:
+                        first = False
+                    user_str += "'%s'" % user['username']
+                user_str += ']'
+                image_data['R'] = user_str
+
+            # Otherwise, give self read/write access to image
+            elif username:
+                image_data['R'] = "['%s']" % username
+                image_data['W'] = "['%s']" % username
+
+            # Add to db
             self._add_row(image_table, image_data)
         except Exception as e:
             raise e
     # End of add_image
 
-    def delete_cluster(self, match_dict=None, unmatch_dict=None):
+    def delete_cluster(self, match_dict=None, unmatch_dict=None, username=None):
         try:
             self.check_obj("cluster", match_dict, unmatch_dict)
             cluster_id = match_dict.get("id", None)
@@ -725,7 +752,8 @@ class ServerMgrDb:
                 msg = ("Servers are present in this cluster, "
                         "remove cluster association, prior to cluster delete.")
                 self.log_and_raise_exception(msg, ERR_OPR_ERROR)
-            self._delete_row(cluster_table, match_dict, unmatch_dict)
+            self._delete_row(cluster_table, match_dict, unmatch_dict,
+                             username=username)
         except Exception as e:
             raise e
     # End of delete_cluster
@@ -796,7 +824,7 @@ class ServerMgrDb:
         return True
     #end of validate_dhcp_delete
  
-    def delete_server(self, match_dict=None, unmatch_dict=None):
+    def delete_server(self, match_dict=None, unmatch_dict=None, username=None):
         try:
             if match_dict and match_dict.get("mac_address", None):
                 if match_dict["mac_address"]:
@@ -808,7 +836,7 @@ class ServerMgrDb:
                         EUI(unmatch_dict["mac_address"])).replace("-", ":")
             self.check_obj("server", match_dict, unmatch_dict)
             self._delete_row(server_table,
-                             match_dict, unmatch_dict)
+                             match_dict, unmatch_dict, username=username)
         except Exception as e:
             raise e
     # End of delete_server
@@ -820,10 +848,11 @@ class ServerMgrDb:
             raise e
     # End of delete_server_tag
 
-    def delete_image(self, match_dict=None, unmatch_dict=None):
+    def delete_image(self, match_dict=None, unmatch_dict=None, username=None):
         try:
             self.check_obj("image", match_dict, unmatch_dict)
-            self._delete_row(image_table, match_dict, unmatch_dict)
+            self._delete_row(image_table, match_dict, unmatch_dict,
+                             username=username)
         except Exception as e:
             raise e
     # End of delete_image
