@@ -2130,6 +2130,19 @@ class VncServerManager():
         return False, msg
 
     def put_image(self):
+        # Detect whether logged in and whether admin
+        logged_in = False
+        is_admin = False
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            is_admin = True
+            logged_in = True
+        elif self.sufficient_perms():
+            logged_in = True
+
+        # if not logged in, don't give access
+        if not logged_in:
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         add_db = True
         try:
@@ -2275,7 +2288,9 @@ class VncServerManager():
                             'path': image_path,
                             'category' : image_category,
                             'parameters' : image_params}
-                        self._serverDb.add_image(image_data)
+                        username = self._backend.current_user.username
+                        self._serverDb.add_image(image_data, admin=is_admin,
+                                                 username=username)
         except subprocess.CalledProcessError as e:
             msg = ("put_image: error %d when executing"
                    "\"%s\"" %(e.returncode, e.cmd))
