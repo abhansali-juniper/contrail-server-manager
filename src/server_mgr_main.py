@@ -3448,7 +3448,7 @@ class VncServerManager():
                     match_dict[match_key] = match_value
 
             servers = self._serverDb.get_server(
-                match_dict, detail= True, username=username)
+                match_dict, detail= True, username=username, perms='RW')
             self._serverDb.delete_server(match_dict, username=username)
             # delete the system entries from cobbler
             for server in servers:
@@ -3586,7 +3586,7 @@ class VncServerManager():
                 msg = "Validation failed"
                 self.log_and_raise_exception(msg)
             images = self._serverDb.get_image(image_dict, detail=True,
-                                              username=username)
+                                              username=username, perms='RW')
             if not images:
                 msg = "Image %s doesn't exist" % (image_dict)
                 self.log_and_raise_exception(msg)
@@ -3883,7 +3883,7 @@ class VncServerManager():
             if base_image_id:
                 base_image_id, base_image = self.get_base_image(base_image_id)
             servers = self._serverDb.get_server(match_dict, detail=True,
-                                                username=username)
+                                                username=username, perms='RW')
             if len(servers) == 0:
                 msg = "No Servers found for %s" % (match_value)
                 self.log_and_raise_exception(msg)
