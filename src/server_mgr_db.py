@@ -55,9 +55,14 @@ class ServerMgrDb:
             return table_columns
     # end get_table_columns
 
-    def _add_table_column(self, cursor, table, column, column_type):
+    def _add_table_column(self, cursor, table, column, column_type, default=None):
         try:
             cmd = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + column_type
+            if default:
+                if column_type == "TEXT":
+                    cmd += " DEFAULT '%s'" % str(default)
+                else:
+                    cmd += " DEFAULT %s" % str(default)
             cursor.execute(cmd)
         except lite.OperationalError:
             pass
@@ -77,16 +82,12 @@ class ServerMgrDb:
                 cursor.execute("CREATE TABLE IF NOT EXISTS " + cluster_table +
                                """ (id TEXT PRIMARY KEY,
                                     parameters TEXT,
-                                    email TEXT,
-                                    R TEXT DEFAULT '[]',
-                                    W TEXT DEFAULT '[]')""")
+                                    email TEXT)""")
                 # Create image table
                 cursor.execute("CREATE TABLE IF NOT EXISTS " +
                                image_table + """ (id TEXT PRIMARY KEY,
                     version TEXT, type TEXT, path TEXT,
-                    parameters TEXT,
-                    R TEXT DEFAULT '[]',
-                    W TEXT DEFAULT '[]')""")
+                    parameters TEXT)""")
                 # Create status table
                 cursor.execute("CREATE TABLE IF NOT EXISTS " +
                                server_status_table + """ (id TEXT PRIMARY KEY,
@@ -108,8 +109,6 @@ class ServerMgrDb:
                          tag1 TEXT, tag2 TEXT, tag3 TEXT,
                          tag4 TEXT, tag5 TEXT, tag6 TAXT, tag7 TEXT,
                          network TEXT, contrail TEXT, top_of_rack TEXT,
-                         R TEXT DEFAULT '[]',
-                         W TEXT DEFAULT '[]',
                          UNIQUE (id))""")
                 # Create inventory table
                 cursor.execute(
@@ -144,11 +143,15 @@ class ServerMgrDb:
                          UNIQUE (value))""")
                 # Add columns for image_table
                 self._add_table_column(cursor, image_table, "category", "TEXT")
+                self._add_table_column(cursor, image_table, "R", "TEXT", "[]")
+                self._add_table_column(cursor, image_table, "RW", "TEXT", "[]")
                 # Add columns for cluster_table
                 self._add_table_column(cursor, cluster_table, "base_image_id", "TEXT")
                 self._add_table_column(cursor, cluster_table, "package_image_id", "TEXT")
                 self._add_table_column(cursor, cluster_table, "provisioned_id", "TEXT")
                 self._add_table_column(cursor, cluster_table, "provision_role_sequence", "TEXT")
+                self._add_table_column(cursor, cluster_table, "R", "TEXT", "[]")
+                self._add_table_column(cursor, cluster_table, "RW", "TEXT", "[]")
                 # Add columns for server_table
                 self._add_table_column(cursor, server_table, "reimaged_id", "TEXT")
                 self._add_table_column(cursor, server_table, "provisioned_id", "TEXT")
@@ -158,6 +161,8 @@ class ServerMgrDb:
                 self._add_table_column(cursor, server_table, "ssh_public_key", "TEXT")
                 self._add_table_column(cursor, server_table, "ssh_private_key", "TEXT")
                 self._add_table_column(cursor, server_table, "ipmi_interface", "TEXT")
+                self._add_table_column(cursor, server_table, "R", "TEXT", "[]")
+                self._add_table_column(cursor, server_table, "RW", "TEXT", "[]")
 
             self._smgr_log.log(self._smgr_log.DEBUG, "Created tables")
 
@@ -176,13 +181,13 @@ class ServerMgrDb:
             raise e
     # End of __init__
 
-    def has_permission(self, username, id, type, read=False, write=False):
+    def has_permission(self, username, id, type, read=False, read_write=False):
         # Ensure username, id, and type are specified
         if not (username and id and type):
             return False
 
         # If no permissions are being checked, return true
-        if not (read or write):
+        if not (read or read_write):
             return True
 
         # Query database to check for permissions
@@ -199,10 +204,11 @@ class ServerMgrDb:
 
         # Build query
         query_str = "SELECT * FROM " + table_name + " WHERE id = '" + id + "'"
-        if read:
-            query_str += " AND R LIKE '%''" + username + "''%'"
-        if write:
-            query_str += " AND W LIKE '%''" + username + "''%'"
+        if read_write:
+            query_str += " AND RW LIKE '%''" + username + "''%'"
+        elif read:
+            query_str += " AND (R LIKE '%''" + username + "''%'"
+            query_str += " OR RW LIKE '%''" + username + "''%')"
 
         # Run query
         with self._con:
