@@ -4483,6 +4483,18 @@ class VncServerManager():
 
     # API call to power-cycle the server (IMPI Interface)
     def restart_server(self):
+        # If admin, allow anything
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only reimaging servers with write permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         self._smgr_log.log(self._smgr_log.DEBUG, "restart_server")
         net_boot = None
         match_key = None
@@ -4500,7 +4512,8 @@ class VncServerManager():
                     match_dict[match_key] = match_value
             reboot_server_list = []
             # if the key is server_id, server_table server key is 'id'
-            servers = self._serverDb.get_server(match_dict, detail=True)
+            servers = self._serverDb.get_server(match_dict, detail=True,
+                                                username=username, perms='RW')
             if len(servers) == 0:
                 msg = "No Servers found for match %s" % \
                     (match_value)
