@@ -189,36 +189,20 @@ class ServerMgrDb:
             raise e
     # End of __init__
 
-    def has_permission(self, username, id, type, read=False, read_write=False):
-        # Ensure username, id, and type are specified
-        if not (username and id and type):
+    # Checks whether user has read or read/write access to table
+    def has_permission(self, user_obj, table_name, perms):
+        # Ensure params are correct
+        if not (user_obj and table_name and perms):
             return False
-
-        # If no permissions are being checked, return true
-        if not (read or read_write):
-            return True
+        if not (table_name == 'server_table' or table_name == 'cluster_table'):
+            return False
+        if not (perms == 'R' or perms == 'RW'):
+            return False
 
         # Query database to check for permissions
-        # Determine table_name
-        table_name = None
-        if type == 'server':
-            table_name = server_table
-        elif type == 'cluster':
-            table_name = cluster_table
-        elif type == 'image':
-            table_name = image_table
-        else:
-            return False
-
-        # Build query
-        query_str = "SELECT * FROM " + table_name + " WHERE id = '" + id + "'"
-        if read_write:
-            query_str += " AND RW LIKE '%''" + username + "''%'"
-        elif read:
-            query_str += " AND (R LIKE '%''" + username + "''%'"
-            query_str += " OR RW LIKE '%''" + username + "''%')"
-
-        # Run query
+        role = user_obj.role
+        query_str = "SELECT * FROM role_table WHERE role = '%s' AND %s " \
+                    "LIKE '%%''%s''%%'" % (role, table_name, perms)
         with self._con:
             cursor = self._con.cursor()
             cursor.execute(query_str)
@@ -536,7 +520,11 @@ class ServerMgrDb:
             raise e
     # End _get_items
 
-    def add_cluster(self, cluster_data):
+    def add_cluster(self, cluster_data, user_obj=None):
+        # If permission requirements not met, stop here
+        if user_obj and not self.has_permission(
+                user_obj=user_obj, table_name=cluster_table, perms='RW'):
+            return
         try:
             # covert all unicode strings in dict
             cluster_data = ServerMgrUtil.convert_unicode(cluster_data)
@@ -892,7 +880,7 @@ class ServerMgrDb:
             raise e
     # End of delete_dhcp_host
 
-    def modify_cluster(self, cluster_data):
+    def modify_cluster(self, cluster_data, username=None):
         try:
             # covert all unicode strings in dict
             cluster_data = ServerMgrUtil.convert_unicode(cluster_data)
@@ -901,7 +889,7 @@ class ServerMgrDb:
                 raise Exception("No cluster id specified")
             self.check_obj("cluster", {"id" : cluster_id})
             db_cluster = self.get_cluster(
-                {"id" : cluster_id}, detail=True)
+                {"id" : cluster_id}, detail=True, username=username)
             if not db_cluster:
                 msg = "%s is not valid" % cluster_id
                 self.log_and_raise_exception(msg, ERR_OPR_ERROR)

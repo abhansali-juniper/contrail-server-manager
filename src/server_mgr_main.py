@@ -2350,6 +2350,19 @@ class VncServerManager():
         return resp_msg
 
     def put_cluster(self):
+        # If admin, allow anything
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            user_obj = None
+
+        # If other account, allow only putting clusters if have write
+        # permissions
+        elif self.sufficient_perms():
+            user_obj = self._backend.current_user
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         try:
             self.validate_smgr_entity("cluster", entity)
@@ -2362,7 +2375,8 @@ class VncServerManager():
                     #TODO Handle uuid here
                     self.validate_smgr_request("CLUSTER", "PUT", bottle.request,
                                                 cur_cluster, True)
-                    self._serverDb.modify_cluster(cur_cluster)
+                    self._serverDb.modify_cluster(cur_cluster,
+                                                  username=user_obj.username)
                 else:
                     self.validate_smgr_request("CLUSTER", "PUT", bottle.request,
                                                 cur_cluster)
@@ -2376,7 +2390,7 @@ class VncServerManager():
                                 "generating ceph uuid/keys for storage")
                     generate_storage_keys(cur_cluster)
                     self.generate_passwords(cur_cluster.get("parameters", {}))
-                    self._serverDb.add_cluster(cur_cluster)
+                    self._serverDb.add_cluster(cur_cluster, user_obj=user_obj)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                 self._smgr_trans_log.PUT_SMGR_CFG_CLUSTER,
