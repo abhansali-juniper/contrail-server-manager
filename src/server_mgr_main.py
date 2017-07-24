@@ -838,8 +838,16 @@ class VncServerManager():
     # end get_cluster
 
     def get_server_logs(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        # If admin, allow getting any log
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, only allow getting logs of servers with read access
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, show nothing
+        else:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -858,7 +866,7 @@ class VncServerManager():
                 remote_dir = '/var/log/contrail/'
 
                 server = self._serverDb.get_server(
-                    {"id" : sid[0]}, detail=True)
+                    {"id" : sid[0]}, detail=True, username=username)
                 ssh_client = self.create_ssh_connection(server[0]['ip_address'],
                     'root', server[0]['password'])
                 sftp_client = ssh_client.open_sftp()
