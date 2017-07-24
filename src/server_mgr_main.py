@@ -1527,6 +1527,18 @@ class VncServerManager():
     # is provided, or if cluster/server is not being currently provisioned, then error is returned
     # configuration is returned.
     def get_provision_status(self):
+        # If admin, allow any server
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, allow only servers with read permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, show nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         ret_data = None
         provision_server_status = []
         try:
@@ -1545,7 +1557,7 @@ class VncServerManager():
                 if not select_clause:
                     select_clause = ["id", "host_name", "cluster_id", "status"]
                 servers = self._serverDb.get_server(
-                    match_dict, field_list=select_clause)
+                    match_dict, field_list=select_clause, username=username)
                 if not len(servers):
                     msg =  ("There are no servers for which provision info can be displayed.")
                     self.log_and_raise_exception(msg)
