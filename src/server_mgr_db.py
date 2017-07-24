@@ -141,6 +141,11 @@ class ServerMgrDb:
                          value TEXT,
                          UNIQUE (tag_id),
                          UNIQUE (value))""")
+                # Create role table
+                cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS " + role_table +
+                    """ (role TEXT PRIMARY KEY NOT NULL,
+                         level TEXT)""")
                 # Add columns for image_table
                 self._add_table_column(cursor, image_table, "category", "TEXT")
                 self._add_table_column(cursor, image_table, "R", "TEXT", "[]")
@@ -163,6 +168,9 @@ class ServerMgrDb:
                 self._add_table_column(cursor, server_table, "ipmi_interface", "TEXT")
                 self._add_table_column(cursor, server_table, "R", "TEXT", "[]")
                 self._add_table_column(cursor, server_table, "RW", "TEXT", "[]")
+                # Add columns for role table
+                self._add_table_column(cursor, role_table, "server_table", "TEXT", "[]")
+                self._add_table_column(cursor, role_table, "cluster_table", "TEXT", "[]")
 
             self._smgr_log.log(self._smgr_log.DEBUG, "Created tables")
 
