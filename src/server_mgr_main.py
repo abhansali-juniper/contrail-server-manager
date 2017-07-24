@@ -2617,6 +2617,10 @@ class VncServerManager():
 
     # Function to change tags used for grouping together servers.
     def put_server_tags(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         if (not entity):
             msg = 'no tags specified'
