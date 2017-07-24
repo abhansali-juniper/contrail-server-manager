@@ -1472,6 +1472,18 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server_status(self):
+        # If admin, show all servers
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = None
+
+        # If other account, show only servers with read permissions
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+
+        # If not logged in, show nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
         ret_data = None
         try:
             ret_data = self.validate_smgr_request("SERVER", "GET",
@@ -1489,7 +1501,8 @@ class VncServerManager():
                 if not select_clause:
                     select_clause = ["id", "mac_address", "ip_address", "status"]
                 servers = self._serverDb.get_server(
-                    match_dict, detail=detail, field_list=select_clause)
+                    match_dict, detail=detail, field_list=select_clause,
+                    username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.GET_SMGR_CFG_SERVER, False)
