@@ -903,10 +903,6 @@ class VncServerManager():
     # dictionary. Since all these are synced up, we return info from
     # dictionaty variable itself.
     def get_server_tags(self):
-        # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
-            return 'Error: Insufficient permissions.'
-
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_tags")
         try:
             query_args = parse_qs(urlparse(bottle.request.url).query,
