@@ -742,7 +742,7 @@ class ServerMgrDb:
             # Otherwise, give self read/write access to image
             elif username:
                 image_data['R'] = "['%s']" % username
-                image_data['W'] = "['%s']" % username
+                image_data['RW'] = "['%s']" % username
 
             # Add to db
             self._add_row(image_table, image_data)
