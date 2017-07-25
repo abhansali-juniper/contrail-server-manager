@@ -418,7 +418,7 @@ class ServerMgrDb:
             if where:
                 delete_str += " WHERE " + where
                 if username:
-                    delete_str += " AND W LIKE '%''" + username + "''%' "
+                    delete_str += " AND RW LIKE '%''" + username + "''%' "
             else:
                 if match_dict:
                     match_list = ["%s = \'%s\'" %(
@@ -430,9 +430,9 @@ class ServerMgrDb:
                     match_str = " and ".join(match_list)
                     delete_str+= " WHERE " + match_str
                     if username:
-                        delete_str += " AND W LIKE '%''" + username + "''%' "
+                        delete_str += " AND RW LIKE '%''" + username + "''%' "
                 elif username:
-                    delete_str += " WHERE W LIKE '%''" + username + "''%' "
+                    delete_str += " WHERE RW LIKE '%''" + username + "''%' "
 
             with self._con:
                 cursor = self._con.cursor()

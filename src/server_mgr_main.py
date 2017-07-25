@@ -3510,6 +3510,8 @@ class VncServerManager():
 
             servers = self._serverDb.get_server(
                 match_dict, detail= True, username=username, perms='RW')
+            if not servers:
+                return 'Error: Insufficient permissions.'
             self._serverDb.delete_server(match_dict, username=username)
             # delete the system entries from cobbler
             for server in servers:
