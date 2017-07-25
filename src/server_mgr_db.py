@@ -490,6 +490,8 @@ class ServerMgrDb:
                     if username:
                         select_str += " AND %s LIKE '%%''%s''%%'" % \
                                       (perms, username)
+                        if perms == 'R':
+                            select_str += " OR RW LIKE '%%''%s''%%'" % username
                 else:
                     if match_dict:
                         match_list = ["%s = \'%s\'" %(
@@ -503,9 +505,14 @@ class ServerMgrDb:
                         if username:
                             select_str += " AND %s LIKE '%%''%s''%%'" % \
                                           (perms, username)
+                            if perms == 'R':
+                                select_str += " OR RW LIKE '%%''%s''%%'" % \
+                                              username
                     elif username:
                         select_str += " WHERE %s LIKE '%%''%s''%%'" % \
                                       (perms, username)
+                        if perms == 'R':
+                            select_str += " OR RW LIKE '%%''%s''%%'" % username
                 cursor.execute(select_str)
             rows = [x for x in cursor]
             cols = [x[0] for x in cursor.description]
