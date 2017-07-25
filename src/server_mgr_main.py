@@ -549,7 +549,7 @@ class VncServerManager():
 
         # SQLite Backend
         self._sqlite_backend = SQLiteBackend(
-            filename='/etc/contrail_smgr/smgr_data.db',
+            filename='/etc/contrail_smgr/smgr_auth_data.db',
             users_tname='user_table', roles_tname='role_table',
             pending_reg_tname='register_table')
         self._backend = Cork(backend=self._sqlite_backend)
