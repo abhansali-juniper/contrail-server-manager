@@ -763,6 +763,18 @@ class ServerMgrDb:
             raise e
     # End of add_image
 
+    # Add user to database
+    def add_user(self, user_data):
+        try:
+            # Convert all unicode
+            user_data = ServerMgrUtil.convert_unicode(user_data)
+
+            # Add to db
+            self._add_row(user_table, user_data)
+        except Exception as e:
+            raise e
+    # End of add_user
+
     def delete_cluster(self, match_dict=None, unmatch_dict=None, username=None):
         try:
             self.check_obj("cluster", match_dict, unmatch_dict)

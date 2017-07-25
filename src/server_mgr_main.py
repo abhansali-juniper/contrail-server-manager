@@ -650,6 +650,7 @@ class VncServerManager():
         #smgr_add
         bottle.route('/server', 'PUT', self.put_server)
         bottle.route('/image', 'PUT', self.put_image)
+        bottle.route('/user', 'PUT', self.put_user)
         bottle.route('/cluster', 'PUT', self.put_cluster)
         bottle.route('/tag', 'PUT', self.put_server_tags)
         bottle.route('/dhcp_subnet', 'PUT', self.put_dhcp_subnet)
@@ -2348,6 +2349,83 @@ class VncServerManager():
         msg = "Image add/Modify success" + " " + str(additional_ret_msg)
         resp_msg = self.form_operartion_data(msg, 0, entity)
         return resp_msg
+
+    # API Call to add user
+    def put_user(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
+        # Get passed in params
+        entity = bottle.request.json
+        if not entity:
+            msg = 'Parameters not specified'
+            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+            abort(404, resp_msg)
+        entity = entity.get("user", None)
+        if not entity:
+            msg = 'Parameters not specified'
+            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+            abort(404, resp_msg)
+        entity = entity[0]
+        username = entity.get("username", None)
+        password = entity.get("password", None)
+        role = entity.get("role", None)
+        desc = entity.get("desc", None)
+        email = entity.get("email", None)
+
+        try:
+            # username, password, role are required
+            if not (username and password and role):
+                msg = 'username, password, and role are required parameters.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
+            # Ensure user doesn't already exist
+            if self._serverDb.get_user(match_dict={'username': username}):
+                msg = 'User already exists.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
+            # Ensure role exists
+            if not self._serverDb.get_role(match_dict={'role': role}):
+                msg = 'Role does not exist.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
+            # Add user to cork
+            self._backend.create_user(username=username, role=role,
+                                      password=password, email_addr=email,
+                                      description=desc)
+            self._sqlite_backend.connection.commit()
+
+            # Add user to server manager db
+            user_data = {}
+            user_data['username'] = username
+            user_data['role'] = role
+            user_data['desc'] = desc
+            user_data['email_addr'] = email
+            self._serverDb.add_user(user_data)
+        except ServerMgrException as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.PUT_SMGR_CFG_USER, False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+
+        except Exception as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.PUT_SMGR_CFG_USER, False)
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.PUT_SMGR_CFG_USER)
+        msg = "User add success"
+        resp_msg = self.form_operartion_data(msg, 0, entity)
+        return resp_msg
+    # end put_user
 
     def put_cluster(self):
         # If admin, allow anything

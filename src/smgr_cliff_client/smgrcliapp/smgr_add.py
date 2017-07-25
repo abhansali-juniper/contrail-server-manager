@@ -41,16 +41,18 @@ class Add(Command):
 
     def get_parser(self, prog_name):
 
-        self.smgr_objects = ["server", "cluster", "image", "tag", "dhcp_host", "dhcp_subnet"]
+        self.smgr_objects = ["server", "cluster", "image", "user", "tag", "dhcp_host", "dhcp_subnet"]
         self.mandatory_params["server"] = ['id', 'mac_address', 'ip_address', 'subnet_mask', 'gateway']
         self.mandatory_params["cluster"] = ['id']
         self.mandatory_params["image"] = ['id', 'category', 'version', 'type', 'path']
+        self.mandatory_params["user"] = ['username', 'password', 'role']
         self.mandatory_params["tag"] = []
         self.mandatory_params["dhcp_subnet"] = ['subnet_address','subnet_mask','subnet_domain','subnet_gateway','dns_server_list','search_domains_list']
         self.mandatory_params["dhcp_host"] = ['host_fqdn','mac_address','ip_address','host_name']
         self.multilevel_param_classes["server"] = ["network", "parameters", "contrail"]
         self.multilevel_param_classes["cluster"] = ["parameters"]
         self.multilevel_param_classes["image"] = ["parameters"]
+        self.multilevel_param_classes["user"] = []
         self.multilevel_param_classes["dhcp_host"] = []
         self.multilevel_param_classes["dhcp_subnet"] = []
         parser = super(Add, self).get_parser(prog_name)
@@ -111,6 +113,20 @@ class Add(Command):
         parser_image.add_argument(
             "--file_name", "-f",
             help="json file containing image param values", dest="file_name", default=None)
+
+        # Subparser for user edit
+        parser_user = subparsers.add_parser(
+            "user", help='Create user')
+        for param in self.object_dict["user"]:
+            if param not in self.multilevel_param_classes["user"]:
+                parser_user.add_argument(
+                    "--" + str(param),
+                    help="Parameter " + str(param) + " for the user being added",
+                    default=None
+                )
+        parser_user.add_argument(
+            "--file_name", "-f",
+            help="json file containing user param values", dest="file_name", default=None)
 
         # Subparser for DHCP host edit
         parser_dhcp_host = subparsers.add_parser(
@@ -445,7 +461,7 @@ class Add(Command):
                         if "id" not in obj_payload and (smgr_obj != "tag" and smgr_obj != "dhcp_host" and smgr_obj != "dhcp_subnet"):
                             self.app.print_error_message_and_quit("No id specified for object being added")
             elif not (getattr(parsed_args, "id", None) or getattr(parsed_args, "mac_address", None)) \
-                    and smgr_obj != "tag" and smgr_obj != "dhcp_subnet":
+                    and smgr_obj != "user" and smgr_obj != "tag" and smgr_obj != "dhcp_subnet":
                 # Check if parsed args has id for object
                 self.app.print_error_message_and_quit("\nYou need to specify the id or mac_address to add an object"
                                                       " (Arguement --id/--mac_address).\n")

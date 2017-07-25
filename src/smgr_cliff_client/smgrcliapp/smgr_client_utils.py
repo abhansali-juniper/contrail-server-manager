@@ -112,6 +112,13 @@ main_object_dict = {
             ("kickstart", "kickstart file for base image"),
             ("kickseed", "kickseed file for base image")])),
     ]),
+    "user": OrderedDict([
+        ("username", "Specify unique username for this user"),
+        ("password", "Specify password for this user"),
+        ("role", "Specify role for this user"),
+        ("email", "Specify email address for this user"),
+        ("desc", "Specify description for this user"),
+    ]),
     "tag": OrderedDict([
         ("tag1", "Specify tag name for tag1"),
         ("tag2", "Specify tag name for tag2"),
