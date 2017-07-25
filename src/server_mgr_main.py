@@ -2554,17 +2554,19 @@ class VncServerManager():
         return resp_msg
 
     def put_server(self):
-        # Detect whether logged in and whether admin
-        logged_in = False
-        is_admin = False
+        # If admin, allow anything
         if self.sufficient_perms(role='administrator', fixed_role=True):
-            is_admin = True
-            logged_in = True
-        elif self.sufficient_perms():
-            logged_in = True
+            user_obj = None
+            username = None
 
-        # if not logged in, don't give access
-        if not logged_in:
+        # If other account, allow only putting servers if have write
+        # permissions
+        elif self.sufficient_perms():
+            user_obj = self._backend.current_user
+            username = user_obj.username
+
+        # If not logged in, allow nothing
+        else:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2583,29 +2585,41 @@ class VncServerManager():
                 db_servers = self._serverDb.get_server(
                     {"id" : server['id']},
                     None, True)
+                db_servers_owned = self._serverDb.get_server(
+                    {"id" : server['id']},
+                    None, True, username=username, perms='RW')
                 if not db_servers:
                     db_servers = self._serverDb.get_server(
                         {"mac_address" : server['mac_address']},
                         None, True)
-                if db_servers:
+                    db_servers_owned = self._serverDb.get_server(
+                        {"mac_address" : server['mac_address']},
+                        None, True, username=username, perms='RW')
+                if db_servers_owned:
                     #TODO - Revisit this logic
                     # Do we need mac to be primary MAC
                     server_fields['primary_keys'] = "['id']"
                     self.validate_smgr_request("SERVER", "PUT", bottle.request,
                                                server, True)
-                    status = db_servers[0]['status']
+                    status = db_servers_owned[0]['status']
                     if not status or status == "server_discovered":
                         server['status'] = "server_added"
                         server['discovered'] = "false"
-                    self._serverDb.modify_server(server)
+                    self._serverDb.modify_server(server,
+                                                 username=username)
                     server_fields['primary_keys'] = "['id', 'mac_address']"
-                else:
+                elif not db_servers:
                     new_servers.append(server)
                     self.validate_smgr_request("SERVER", "PUT",
                                                bottle.request, server)
                     server['status'] = "server_added"
                     server['discovered'] = "false"
-                    self._serverDb.add_server(server)
+                    if self._serverDb.add_server(server, user_obj=user_obj) \
+                        == -1:
+                        return 'Error: Insufficient permissions.'
+                else:
+                    return 'Error: Insufficient permissions.'
+
                     # Trigger to collect monitoring info
 
             # End of for

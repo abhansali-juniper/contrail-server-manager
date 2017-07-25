@@ -583,7 +583,12 @@ class ServerMgrDb:
         return 0
     # End of add_dhcp_host
 
-    def add_server(self, server_data):
+    def add_server(self, server_data, user_obj=None):
+        # If permission requirements not met, stop here
+        if user_obj and not self.has_permission(
+                user_obj=user_obj, table_name=server_table, perms='RW'):
+            return -1
+
         try:
             # covert all unicode strings in dict
             server_data = ServerMgrUtil.convert_unicode(server_data)
@@ -652,6 +657,11 @@ class ServerMgrDb:
                 if not server_parameters:
                     server_parameters = {}
                 server_data['parameters'] = str(server_parameters)
+            # Give self R and R/W permissions
+            if user_obj:
+                perm_str = "['%s']" % user_obj.username
+                server_data['R'] = perm_str
+                server_data['RW'] = perm_str
             self._add_row(server_table, server_data)
         except Exception as e:
             raise e
@@ -889,7 +899,7 @@ class ServerMgrDb:
                 raise Exception("No cluster id specified")
             self.check_obj("cluster", {"id" : cluster_id})
             db_cluster = self.get_cluster(
-                {"id" : cluster_id}, detail=True, username=username)
+                {"id" : cluster_id}, detail=True, username=username, perms='RW')
             if not db_cluster:
                 msg = "%s is not valid" % cluster_id
                 self.log_and_raise_exception(msg, ERR_OPR_ERROR)
@@ -949,7 +959,7 @@ class ServerMgrDb:
             raise e
     # End of modify_image
 
-    def modify_server(self, server_data):
+    def modify_server(self, server_data, username=None):
         # covert all unicode strings in dict
         server_data = ServerMgrUtil.convert_unicode(server_data)
         db_server = None
@@ -957,11 +967,11 @@ class ServerMgrDb:
                  server_data['mac_address'] != None:
             db_server = self.get_server(
                 {'mac_address' : server_data['mac_address']},
-                detail=True)
+                detail=True, username=username, perms='RW')
         elif 'id' in server_data.keys() and server_data['id'] != None:
             db_server = self.get_server(
                 {'id': server_data['id']},
-                detail=True)
+                detail=True, username=username, perms='RW')
 
         if not db_server:
             return db_server
