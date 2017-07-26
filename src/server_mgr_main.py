@@ -651,6 +651,7 @@ class VncServerManager():
         bottle.route('/server', 'PUT', self.put_server)
         bottle.route('/image', 'PUT', self.put_image)
         bottle.route('/user', 'PUT', self.put_user)
+        bottle.route('/role', 'PUT', self.put_role)
         bottle.route('/cluster', 'PUT', self.put_cluster)
         bottle.route('/tag', 'PUT', self.put_server_tags)
         bottle.route('/dhcp_subnet', 'PUT', self.put_dhcp_subnet)
@@ -2427,6 +2428,76 @@ class VncServerManager():
         resp_msg = self.form_operartion_data(msg, 0, entity)
         return resp_msg
     # end put_user
+
+    # API Call to add role
+    def put_role(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
+        # Get passed in params
+        entity = bottle.request.json
+        if not entity:
+            msg = 'Parameters not specified'
+            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+            abort(404, resp_msg)
+        entity = entity.get("role", None)
+        if not entity:
+            msg = 'Parameters not specified'
+            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+            abort(404, resp_msg)
+        entity = entity[0]
+        role = entity.get("role", None)
+        server_table = entity.get("server_table", None)
+        cluster_table = entity.get("cluster_table", None)
+        level = entity.get("level", None)
+
+        try:
+            # role and level are required
+            if not (role and level):
+                msg = 'role and level are required parameters.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
+            # Ensure role doesn't already exist
+            if self._serverDb.get_role(match_dict={'role': role}):
+                msg = 'Role already exists.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
+            # Add role to cork
+            self._backend.create_role(role=role, level=level)
+            self._sqlite_backend.connection.commit()
+
+            # Add role to server manager db
+            role_data = {}
+            role_data['role'] = role
+            role_data['server_table'] = server_table
+            role_data['cluster_table'] = cluster_table
+            role_data['level'] = level
+            self._serverDb.add_role(role_data)
+        except ServerMgrException as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.PUT_SMGR_CFG_ROLE,
+                                     False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+
+        except Exception as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.PUT_SMGR_CFG_ROLE,
+                                     False)
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.PUT_SMGR_CFG_ROLE)
+        msg = "Role add success"
+        resp_msg = self.form_operartion_data(msg, 0, entity)
+        return resp_msg
+    # end put_role
 
     def put_cluster(self):
         # If admin, allow anything

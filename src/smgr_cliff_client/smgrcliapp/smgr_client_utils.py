@@ -119,6 +119,12 @@ main_object_dict = {
         ("email", "Specify email address for this user"),
         ("desc", "Specify description for this user"),
     ]),
+    "role": OrderedDict([
+        ("role", "Specify unique role name for this role"),
+        ("level", "Specify level for this user"),
+        ("server_table", "Specify server_table permissions for this role"),
+        ("cluster_table", "Specify server_table permissions for this role"),
+    ]),
     "tag": OrderedDict([
         ("tag1", "Specify tag name for tag1"),
         ("tag2", "Specify tag name for tag2"),

@@ -775,6 +775,18 @@ class ServerMgrDb:
             raise e
     # End of add_user
 
+    # Add role to database
+    def add_role(self, role_data):
+        try:
+            # Convert all unicode
+            role_data = ServerMgrUtil.convert_unicode(role_data)
+
+            # Add to db
+            self._add_row(role_table, role_data)
+        except Exception as e:
+            raise e
+    # End of add_role
+
     def delete_cluster(self, match_dict=None, unmatch_dict=None, username=None):
         try:
             self.check_obj("cluster", match_dict, unmatch_dict)
