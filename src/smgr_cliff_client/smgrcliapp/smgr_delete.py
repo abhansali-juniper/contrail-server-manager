@@ -92,6 +92,16 @@ class Delete(Command):
         parser_user.set_defaults(which='user')
         self.command_dictionary["user"] = ['user_id', 'where']
 
+        # Subparser for role delete
+        parser_role = subparsers.add_parser(
+            "role", help='Delete role')
+        parser_role.add_argument("--where",
+                                 help=("sql where statement in quotation marks"))
+        parser_role.add_argument("--role_id",
+                                 help=("role name for role to be deleted"))
+        parser_role.set_defaults(which="role")
+        self.command_dictionary["role"] = ['role_id', 'where']
+
         # Subparser for tag delete
         parser_tag = subparsers.add_parser(
             "tag", help='Delete tag')
@@ -209,6 +219,24 @@ class Delete(Command):
         return rest_api_params
     # end def delete_user
 
+    def delete_role(self, parsed_args):
+        if getattr(parsed_args, "role_id", None):
+            match_key = 'role'
+            match_value = getattr(parsed_args, "role_id", None)
+        elif getattr(parsed_args, "where", None):
+            match_key = 'where'
+            match_value = getattr(parsed_args, "where", None)
+        else:
+            match_key = ''
+            match_value = ''
+        rest_api_params = {
+            'object': 'role',
+            'match_key': match_key,
+            'match_value': match_value
+        }
+        return rest_api_params
+    # end def delete_role
+
     def delete_tag(self, parsed_args):
         if getattr(parsed_args, "tags", None):
             match_key = 'tag'
@@ -279,6 +307,8 @@ class Delete(Command):
             rest_api_params = self.delete_image(parsed_args)
         elif obj == "user":
             rest_api_params = self.delete_user(parsed_args)
+        elif obj == "role":
+            rest_api_params = self.delete_role(parsed_args)
         elif obj == "tag":
             rest_api_params = self.delete_tag(parsed_args)
         elif obj == "dhcp_host":

@@ -815,6 +815,9 @@ class ServerMgrDb:
         elif type == "image":
             cb = self.get_image
             db_obj = cb(match_dict, unmatch_dict, detail=False)
+        elif type == "role":
+            cb = self.get_role
+            db_obj = cb(match_dict, unmatch_dict, detail=False)
         elif type == "user":
             cb = self.get_user
             db_obj = cb(match_dict, unmatch_dict, detail=False)
@@ -913,6 +916,14 @@ class ServerMgrDb:
         except Exception as e:
             raise e
     # End of delete_user
+
+    def delete_role(self, match_dict=None, unmatch_dict=None):
+        try:
+            self.check_obj("role", match_dict, unmatch_dict)
+            self._delete_row(role_table, match_dict, unmatch_dict)
+        except Exception as e:
+            raise e
+    # End of delete_role
 
     def delete_dhcp_subnet(self, match_dict=None, unmatch_dict=None):
         try:

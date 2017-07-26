@@ -662,6 +662,7 @@ class VncServerManager():
         bottle.route('/server', 'DELETE', self.delete_server)
         bottle.route('/image', 'DELETE', self.delete_image)
         bottle.route('/user', 'DELETE', self.delete_user)
+        bottle.route('/role', 'DELETE', self.delete_role)
         bottle.route('/dhcp_subnet', 'DELETE', self.delete_dhcp_subnet)
         bottle.route('/dhcp_host', 'DELETE', self.delete_dhcp_host)
 
@@ -3963,6 +3964,71 @@ class VncServerManager():
         resp_msg = self.form_operartion_data(msg, 0, None)
         return resp_msg
     # End of delete_user
+
+    # API to delete a role
+    def delete_role(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
+        self._smgr_log.log(self._smgr_log.DEBUG, "delete_role")
+        try:
+            # Validate request
+            ret_data = self.validate_smgr_request("ROLE", "DELETE",
+                                                  bottle.request)
+            if ret_data["status"] == 0:
+                role_dict = {}
+                role_dict[ret_data["match_key"]] = ret_data["match_value"]
+            else:
+                msg = "Validation failed"
+                self.log_and_raise_exception(msg)
+            roles = self._serverDb.get_role(role_dict, detail=True)
+
+            # Stop if role does not exist
+            if not roles:
+                msg = "Role %s doesn't exist" % role_dict
+                self.log_and_raise_exception(msg)
+                self._smgr_log.log(self._smgr_log.ERROR, msg)
+            role = roles[0]['role']
+            role_in_db = False
+            for curr_role in self._backend.list_roles():
+                if role == curr_role[0]:
+                    role_in_db = True
+                    break
+            if not role_in_db:
+                msg = "Role %s doesn't exist" % role_dict
+                self.log_and_raise_exception(msg)
+                self._smgr_log.log(self._smgr_log.ERROR, msg)
+
+            # Remove from cork db
+            self._backend.delete_role(role)
+
+            # Remove from server mgr db
+            self._serverDb.delete_role(role_dict)
+
+        # Catch exceptions
+        except ServerMgrException as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.DELETE_SMGR_CFG_ROLE,
+                                     False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+        except Exception as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.DELETE_SMGR_CFG_ROLE,
+                                     False)
+            self._smgr_log.log(self._smgr_log.ERROR,
+                               "Unable to delete role, %s" % repr(e))
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.DELETE_SMGR_CFG_ROLE)
+        msg = "Role Deleted"
+        resp_msg = self.form_operartion_data(msg, 0, None)
+        return resp_msg
+    # End of delete_role
 
     # API to create the server manager configuration DB from provided JSON
     # file.
