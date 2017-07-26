@@ -82,6 +82,16 @@ class Delete(Command):
         parser_image.set_defaults(which='image')
         self.command_dictionary["image"] = ['image_id', 'where']
 
+        # Subparser for user delete
+        parser_user = subparsers.add_parser(
+            "user", help='Delete user')
+        parser_user.add_argument("--where",
+                                 help=("sql where statement in quotation marks"))
+        parser_user.add_argument("--user_id",
+                                 help=("username for user to be deleted"))
+        parser_user.set_defaults(which='user')
+        self.command_dictionary["user"] = ['user_id', 'where']
+
         # Subparser for tag delete
         parser_tag = subparsers.add_parser(
             "tag", help='Delete tag')
@@ -181,6 +191,24 @@ class Delete(Command):
         return rest_api_params
         #end def delete_image
 
+    def delete_user(self, parsed_args):
+        if getattr(parsed_args, "user_id", None):
+            match_key = 'username'
+            match_value = getattr(parsed_args, "user_id", None)
+        elif getattr(parsed_args, "where", None):
+            match_key = 'where'
+            match_value = getattr(parsed_args, "where", None)
+        else:
+            match_key = ''
+            match_value = ''
+        rest_api_params = {
+            'object': 'user',
+            'match_key': match_key,
+            'match_value': match_value
+        }
+        return rest_api_params
+    # end def delete_user
+
     def delete_tag(self, parsed_args):
         if getattr(parsed_args, "tags", None):
             match_key = 'tag'
@@ -249,6 +277,8 @@ class Delete(Command):
             rest_api_params = self.delete_cluster(parsed_args)
         elif obj == "image":
             rest_api_params = self.delete_image(parsed_args)
+        elif obj == "user":
+            rest_api_params = self.delete_user(parsed_args)
         elif obj == "tag":
             rest_api_params = self.delete_tag(parsed_args)
         elif obj == "dhcp_host":

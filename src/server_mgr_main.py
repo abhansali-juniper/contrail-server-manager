@@ -660,6 +660,7 @@ class VncServerManager():
         bottle.route('/cluster', 'DELETE', self.delete_cluster)
         bottle.route('/server', 'DELETE', self.delete_server)
         bottle.route('/image', 'DELETE', self.delete_image)
+        bottle.route('/user', 'DELETE', self.delete_user)
         bottle.route('/dhcp_subnet', 'DELETE', self.delete_dhcp_subnet)
         bottle.route('/dhcp_host', 'DELETE', self.delete_dhcp_host)
 
@@ -3832,6 +3833,65 @@ class VncServerManager():
         return resp_msg
 
     # End of delete_image
+
+    # API to delete a user
+    def delete_user(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
+        self._smgr_log.log(self._smgr_log.DEBUG, "delete_user")
+        try:
+            # Validate request
+            ret_data = self.validate_smgr_request("USER", "DELETE",
+                                                  bottle.request)
+            if ret_data["status"] == 0:
+                user_dict = {}
+                user_dict[ret_data["match_key"]] = ret_data["match_value"]
+            else:
+                msg = "Validation failed"
+                self.log_and_raise_exception(msg)
+            users = self._serverDb.get_user(user_dict, detail=True)
+
+            # Stop if user does not exist
+            if not users or self._backend.user(users[0]['username']) is None:
+                msg = "User %s doesn't exist" % user_dict
+                self.log_and_raise_exception(msg)
+                self._smgr_log.log(self._smgr_log.ERROR,
+                                   msg)
+            user = users[0]
+            username = user['username']
+
+            # Remove from cork db
+            self._backend.delete_user(username)
+            self._sqlite_backend.connection.commit()
+
+            # Remove from server mgr db
+            self._serverDb.delete_user(user_dict)
+
+        # Catch exceptions
+        except ServerMgrException as e:
+            self.log_trace()
+            self._smgr_trans_log.log(bottle.request,
+                                    self._smgr_trans_log.DELETE_SMGR_CFG_USER,
+                                    False)
+            resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
+            abort(404, resp_msg)
+        except Exception as e:
+            self._smgr_trans_log.log(bottle.request,
+                                     self._smgr_trans_log.DELETE_SMGR_CFG_USER,
+                                     False)
+            self._smgr_log.log(self._smgr_log.ERROR,
+                               "Unable to delete user, %s" % repr(e))
+            resp_msg = self.form_operartion_data(repr(e), ERR_GENERAL_ERROR,
+                                                 None)
+            abort(404, resp_msg)
+        self._smgr_trans_log.log(bottle.request,
+                                 self._smgr_trans_log.DELETE_SMGR_CFG_USER)
+        msg = "User Deleted"
+        resp_msg = self.form_operartion_data(msg, 0, None)
+        return resp_msg
+    # End of delete_user
 
     # API to create the server manager configuration DB from provided JSON
     # file.
