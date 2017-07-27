@@ -2601,6 +2601,10 @@ class VncServerManager():
             # check if old details are there else throw error
 
     def put_dhcp_host(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         if (not entity):
             msg = 'Host FQDN not specified'
@@ -2651,6 +2655,10 @@ class VncServerManager():
         return resp_msg
 
     def put_dhcp_subnet(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         entity = bottle.request.json
         if (not entity):
             msg = 'Subnet Address not specified'
@@ -3703,6 +3711,10 @@ class VncServerManager():
 
     # API call to delete a dhcp subnet from the configuration.
     def delete_dhcp_subnet(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("DHCP_SUBNET", "DELETE",
                                                          bottle.request)
@@ -3742,6 +3754,10 @@ class VncServerManager():
 
     # API call to delete a dhcp host from the configuration.
     def delete_dhcp_host(self):
+        # Ensure permissions
+        if not self.sufficient_perms(role='administrator', fixed_role=True):
+            return 'Error: Insufficient permissions.'
+
         try:
             ret_data = self.validate_smgr_request("DHCP_HOST", "DELETE",
                                                          bottle.request)
