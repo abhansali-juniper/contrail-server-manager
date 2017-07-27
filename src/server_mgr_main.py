@@ -2378,43 +2378,62 @@ class VncServerManager():
         email = entity.get("email", None)
 
         try:
-            # username, password, role are required
-            if not (username and password and role):
-                msg = 'username, password, and role are required parameters.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
-
-            # Ensure user doesn't already exist
-            if self._serverDb.get_user(match_dict={'username': username}):
-                msg = 'User already exists.'
+            # username is required
+            if not username:
+                msg = 'username is a required parameter.'
                 resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
                 abort(404, resp_msg)
 
             # Ensure role exists
-            if not self._serverDb.get_role(match_dict={'role': role}):
+            if role and not self._serverDb.get_role(match_dict={'role': role}):
                 msg = 'Role does not exist.'
                 resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
                 abort(404, resp_msg)
 
-            # Add user to cork
-            self._backend.create_user(username=username, role=role,
-                                      password=password, email_addr=email,
-                                      description=desc)
-            self._sqlite_backend.connection.commit()
-
-            # Add user to server manager db
+            # Build user data
             user_data = {}
             user_data['username'] = username
-            user_data['role'] = role
-            user_data['desc'] = desc
-            user_data['email_addr'] = email
-            self._serverDb.add_user(user_data)
+            if role:
+                user_data['role'] = role
+            if desc:
+                user_data['desc'] = desc
+            if email:
+                user_data['email_addr'] = email
+
+            # Modify user
+            if self._serverDb.get_user(match_dict={'username': username}):
+                # Modify in cork db
+                user_obj = self._backend.user(username)
+                user_obj.update(role=role, pwd=password, email_addr=email)
+                self._sqlite_backend.connection.commit()
+
+                # Modify user in server manager db
+                self._serverDb.modify_user(user_data)
+
+            # Add user
+            else:
+                # role, password are required
+                if not (role and password):
+                    msg = 'role and password are required parameters.'
+                    resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR,
+                                                         None)
+                    abort(404, resp_msg)
+
+                # Add user to cork
+                self._backend.create_user(username=username, role=role,
+                                          password=password, email_addr=email,
+                                          description=desc)
+                self._sqlite_backend.connection.commit()
+
+                # Add user to server manager db
+                self._serverDb.add_user(user_data)
+
+        # Catch exceptions
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.PUT_SMGR_CFG_USER, False)
             resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
             abort(404, resp_msg)
-
         except Exception as e:
             self.log_trace()
             self._smgr_trans_log.log(bottle.request,

@@ -1018,6 +1018,20 @@ class ServerMgrDb:
             raise e
     # End of modify_image
 
+    def modify_user(self, user_data):
+        try:
+            # covert all unicode strings in dict
+            user_data = ServerMgrUtil.convert_unicode(user_data)
+            username = user_data.get('username', None)
+            if not username:
+                raise Exception("No username specified")
+            self._modify_row(
+                user_table, user_data,
+                {'username' : username})
+        except Exception as e:
+            raise e
+    # End of modify_user
+
     def modify_server(self, server_data, username=None):
         # covert all unicode strings in dict
         server_data = ServerMgrUtil.convert_unicode(server_data)

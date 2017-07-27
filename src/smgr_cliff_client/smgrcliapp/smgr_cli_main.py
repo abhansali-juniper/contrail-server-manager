@@ -114,6 +114,7 @@ class ServerManagerCLI(App):
             self.default_config["server"] = dict(config.items("SERVER"))
             self.default_config["cluster"] = dict(config.items("CLUSTER"))
             self.default_config["image"] = dict(config.items("IMAGE"))
+            self.default_config["user"] = dict()
             self.default_config["tag"] = dict(config.items("TAG"))
             self.default_config["dhcp_host"] = dict(config.items("DHCP_HOST"))
             self.default_config["dhcp_subnet"] = dict(config.items("DHCP_HOST"))
