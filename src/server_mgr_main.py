@@ -3606,6 +3606,10 @@ class VncServerManager():
                 match_dict = {}
                 if match_key:
                     match_dict[match_key] = match_value
+                clusters = self._serverDb.get_cluster(
+                    match_dict=match_dict, username=username, perms='RW')
+                if not clusters:
+                    return 'Error: Insufficient permissions.'
                 self._serverDb.delete_cluster(match_dict, username=username)
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
