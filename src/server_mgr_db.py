@@ -781,6 +781,12 @@ class ServerMgrDb:
             # Convert all unicode
             role_data = ServerMgrUtil.convert_unicode(role_data)
 
+            # Defaults
+            if not role_data['server_table']:
+                role_data['server_table'] = '[]'
+            if not role_data['cluster_table']:
+                role_data['cluster_table'] = '[]'
+
             # Add to db
             self._add_row(role_table, role_data)
         except Exception as e:
