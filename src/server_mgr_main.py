@@ -548,10 +548,12 @@ class VncServerManager():
         self._pipe_start_app = bottle.app()
 
         # SQLite Backend
+        cork_db_path = self._args.server_manager_base_dir + 'smgr_auth_data.db'
+        cork_init_db = not os.path.isfile(cork_db_path)
         self._sqlite_backend = SQLiteBackend(
-            filename='/etc/contrail_smgr/smgr_auth_data.db',
+            filename=cork_db_path,
             users_tname='user_table', roles_tname='role_table',
-            pending_reg_tname='register_table')
+            pending_reg_tname='register_table', initialize=cork_init_db)
         self._backend = Cork(backend=self._sqlite_backend)
 
         # Session
