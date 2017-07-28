@@ -4041,6 +4041,7 @@ class VncServerManager():
 
             # Remove from cork db
             self._backend.delete_role(role)
+            self._sqlite_backend.connection.commit()
 
             # Remove from server mgr db
             self._serverDb.delete_role(role_dict)
