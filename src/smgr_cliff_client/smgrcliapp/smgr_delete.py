@@ -87,10 +87,10 @@ class Delete(Command):
             "user", help='Delete user')
         parser_user.add_argument("--where",
                                  help=("sql where statement in quotation marks"))
-        parser_user.add_argument("--user_id",
+        parser_user.add_argument("--username",
                                  help=("username for user to be deleted"))
         parser_user.set_defaults(which='user')
-        self.command_dictionary["user"] = ['user_id', 'where']
+        self.command_dictionary["user"] = ['username', 'where']
 
         # Subparser for role delete
         parser_role = subparsers.add_parser(
@@ -202,9 +202,9 @@ class Delete(Command):
         #end def delete_image
 
     def delete_user(self, parsed_args):
-        if getattr(parsed_args, "user_id", None):
+        if getattr(parsed_args, "username", None):
             match_key = 'username'
-            match_value = getattr(parsed_args, "user_id", None)
+            match_value = getattr(parsed_args, "username", None)
         elif getattr(parsed_args, "where", None):
             match_key = 'where'
             match_value = getattr(parsed_args, "where", None)

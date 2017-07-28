@@ -86,7 +86,7 @@ class Show(Command):
         # Subparser for user show
         parser_user = subparsers.add_parser("user", help='Show user')
         user_group = parser_user.add_mutually_exclusive_group()
-        user_group.add_argument("--user_id", help=("user id for user"))
+        user_group.add_argument("--username", help=("username for user"))
         user_select_group = parser_user.add_mutually_exclusive_group()
         user_select_group.add_argument(
             "--select", help=("sql select statement in quotation marks"))
@@ -94,7 +94,7 @@ class Show(Command):
             "--detail", "-d", action='store_true',
             help="Flag to indicate if details are requested")
         parser_user.set_defaults(which='user')
-        self.command_dictionary["user"] = ['user_id', 'select', 'detail']
+        self.command_dictionary["user"] = ['username', 'select', 'detail']
 
         # Subparser for role show
         parser_role = subparsers.add_parser("role", help='Show role')
@@ -281,9 +281,9 @@ class Show(Command):
         rest_api_params['object'] = 'user'
         rest_api_params['select'] = getattr(parsed_args, "select", None)
 
-        if getattr(parsed_args, "user_id", None):
+        if getattr(parsed_args, "username", None):
             rest_api_params['match_key'] = 'username'
-            rest_api_params['match_value'] = getattr(parsed_args, "user_id",
+            rest_api_params['match_value'] = getattr(parsed_args, "username",
                                                      None)
         else:
             rest_api_params['match_key'] = None
