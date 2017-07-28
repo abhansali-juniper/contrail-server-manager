@@ -4039,6 +4039,13 @@ class VncServerManager():
                 self.log_and_raise_exception(msg)
                 self._smgr_log.log(self._smgr_log.ERROR, msg)
 
+            # Stop if there are users assigned this role
+            users = self._serverDb.get_user({'role': role})
+            if users:
+                msg = "Users currently assigned role %s" % role_dict
+                self.log_and_raise_exception(msg)
+                self._smgr_log.log(self._smgr_log.ERROR, msg)
+
             # Remove from cork db
             self._backend.delete_role(role)
             self._sqlite_backend.connection.commit()
