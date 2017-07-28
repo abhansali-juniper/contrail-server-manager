@@ -2473,29 +2473,49 @@ class VncServerManager():
         level = entity.get("level", None)
 
         try:
-            # role and level are required
-            if not (role and level):
-                msg = 'role and level are required parameters.'
+            # role is required
+            if not role:
+                msg = 'role is a required parameter.'
                 resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
                 abort(404, resp_msg)
 
-            # Ensure role doesn't already exist
-            if self._serverDb.get_role(match_dict={'role': role}):
-                msg = 'Role already exists.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
-
-            # Add role to cork
-            self._backend.create_role(role=role, level=level)
-            self._sqlite_backend.connection.commit()
-
-            # Add role to server manager db
+            # Build role data
             role_data = {}
             role_data['role'] = role
-            role_data['server_table'] = server_table
-            role_data['cluster_table'] = cluster_table
-            role_data['level'] = level
-            self._serverDb.add_role(role_data)
+            if server_table:
+                role_data['server_table'] = server_table
+            if cluster_table:
+                role_data['cluster_table'] = cluster_table
+            if level:
+                role_data['level'] = level
+
+            # Modify role
+            if self._serverDb.get_role(match_dict={'role': role}):
+                # Modify in cork db
+                if level:
+                    self._backend.delete_role(role=role)
+                    self._backend.create_role(role=role, level=level)
+
+                # Modify role in server manager db
+                self._serverDb.modify_role(role_data)
+
+            # Add role
+            else:
+                # level is required
+                if not level:
+                    msg = 'level is a required parameter.'
+                    resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR,
+                                                         None)
+                    abort(404, resp_msg)
+
+                # Add role to cork
+                self._backend.create_role(role=role, level=level)
+                self._sqlite_backend.connection.commit()
+
+                # Add role to server manager db
+                self._serverDb.add_role(role_data)
+
+        # Catch exceptions
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.PUT_SMGR_CFG_ROLE,
@@ -2514,7 +2534,7 @@ class VncServerManager():
 
         self._smgr_trans_log.log(bottle.request,
                                  self._smgr_trans_log.PUT_SMGR_CFG_ROLE)
-        msg = "Role add success"
+        msg = "Role add/modify success"
         resp_msg = self.form_operartion_data(msg, 0, entity)
         return resp_msg
     # end put_role

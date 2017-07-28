@@ -1032,6 +1032,18 @@ class ServerMgrDb:
             raise e
     # End of modify_user
 
+    def modify_role(self, role_data):
+        try:
+            # convert all unicode strings in dict
+            role_data = ServerMgrUtil.convert_unicode(role_data)
+            role = role_data.get('role', None)
+            if not role:
+                raise Exception("No role specified")
+            self._modify_row(role_table, role_data, {'role': role})
+        except Exception as e:
+            raise e
+    # End of modify_role
+
     def modify_server(self, server_data, username=None):
         # covert all unicode strings in dict
         server_data = ServerMgrUtil.convert_unicode(server_data)

@@ -46,7 +46,7 @@ class Add(Command):
         self.mandatory_params["cluster"] = ['id']
         self.mandatory_params["image"] = ['id', 'category', 'version', 'type', 'path']
         self.mandatory_params["user"] = ['username']
-        self.mandatory_params["role"] = ['role', 'level']
+        self.mandatory_params["role"] = ['role']
         self.mandatory_params["tag"] = []
         self.mandatory_params["dhcp_subnet"] = ['subnet_address','subnet_mask','subnet_domain','subnet_gateway','dns_server_list','search_domains_list']
         self.mandatory_params["dhcp_host"] = ['host_fqdn','mac_address','ip_address','host_name']
