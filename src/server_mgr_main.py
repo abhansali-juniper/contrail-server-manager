@@ -2543,11 +2543,13 @@ class VncServerManager():
         # If admin, allow anything
         if self.sufficient_perms(role='administrator', fixed_role=True):
             user_obj = None
+            username = None
 
         # If other account, allow only putting clusters if have write
         # permissions
         elif self.sufficient_perms():
             user_obj = self._backend.current_user
+            username = user_obj.username
 
         # If not logged in, allow nothing
         else:
@@ -2562,11 +2564,18 @@ class VncServerManager():
                 if self._serverDb.check_obj(
                     "cluster", {"id" : cur_cluster['id']},
                     raise_exception=False):
+
+                    # If user doesn't have RW to this cluster, stop
+                    if not self._serverDb.get_cluster({'id': cur_cluster['id']},
+                                                      username=username,
+                                                      perms='RW'):
+                        return 'Error: Insufficient permissions for cluster ' \
+                               '%s' % cur_cluster['id']
                     #TODO Handle uuid here
                     self.validate_smgr_request("CLUSTER", "PUT", bottle.request,
                                                 cur_cluster, True)
                     self._serverDb.modify_cluster(cur_cluster,
-                                                  username=user_obj.username)
+                                                  username=username)
                 else:
                     self.validate_smgr_request("CLUSTER", "PUT", bottle.request,
                                                 cur_cluster)
@@ -2580,7 +2589,9 @@ class VncServerManager():
                                 "generating ceph uuid/keys for storage")
                     generate_storage_keys(cur_cluster)
                     self.generate_passwords(cur_cluster.get("parameters", {}))
-                    self._serverDb.add_cluster(cur_cluster, user_obj=user_obj)
+                    if self._serverDb.add_cluster(
+                            cur_cluster, user_obj=user_obj) == 1:
+                        return 'Error: Insufficient permissions.'
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                 self._smgr_trans_log.PUT_SMGR_CFG_CLUSTER,

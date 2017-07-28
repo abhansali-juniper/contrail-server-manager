@@ -531,7 +531,7 @@ class ServerMgrDb:
         # If permission requirements not met, stop here
         if user_obj and not self.has_permission(
                 user_obj=user_obj, table_name=cluster_table, perms='RW'):
-            return
+            return -1
         try:
             # covert all unicode strings in dict
             cluster_data = ServerMgrUtil.convert_unicode(cluster_data)
@@ -551,6 +551,12 @@ class ServerMgrDb:
             email = cluster_data.pop("email", None)
             if email is not None:
                 cluster_data['email'] = str(email)
+
+            # Give self R and R/W permissions
+            if user_obj:
+                perm_str = "['%s']" % user_obj.username
+                cluster_data['R'] = perm_str
+                cluster_data['RW'] = perm_str
             self._add_row(cluster_table, cluster_data)
         except Exception as e:
             raise e
