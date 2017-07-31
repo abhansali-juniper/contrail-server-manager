@@ -171,7 +171,7 @@ class Provision(Command):
         # end if
 
         if payload:
-            resp = smgrutils.send_REST_request(self.smgr_ip, self.smgr_port, obj="server/provision",
+            resp = smgrutils.send_authed_REST_request(self.smgr_ip, self.smgr_port, obj="server/provision",
                                                payload=payload, method="POST")
             self.app.stdout.write("\n" + str(smgrutils.print_rest_response(resp)) + "\n")
             #  End of provision_server

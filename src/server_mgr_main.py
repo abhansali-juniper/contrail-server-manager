@@ -6722,12 +6722,28 @@ class VncServerManager():
     # puppet manifest file for the server and adds it to site
     # manifest file.
     def provision_server(self, issu_flag = False):
+        # If admin, allow anything
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            user_obj = None
+            username = None
+
+        # If other account, allow only provisioning if have RW to server/cluster
+        # and R to images
+        elif self.sufficient_perms():
+            user_obj = self._backend.current_user
+            username = user_obj.username
+
+        # If not logged in, allow nothing
+        else:
+            return 'Error: Insufficient permissions.'
+
 	provision_server_list = []
         package_type_list = ["contrail-ubuntu-package", "contrail-centos-package", "contrail-storage-ubuntu-package"]
         self._smgr_log.log(self._smgr_log.DEBUG, "provision_server")
         provision_status = {}
         try:
             entity = bottle.request.json
+
             if entity.get('opcode', '') == "issu" and not issu_flag:
                 # create SmgrIssuClass instance
                 self.issu_obj = SmgrIssuClass(self, entity)
@@ -6767,7 +6783,32 @@ class VncServerManager():
             else:
                 msg = "Error validating request"
                 self.log_and_raise_exception(msg)
+
+            # Ensure user has read to server packages image
+            server_packages = ret_data['server_packages']
+            server_packages_owned = bool(self._serverDb.get_image(
+                match_dict={'id': server_packages}, username=username))
+            if not server_packages_owned:
+                return 'Error: Insufficient permissions for image %s' \
+                       % server_packages
+
+            # Ensure user has read to contrail image
+            contrail_image_id = ret_data.get('contrail_image_id', None)
+            if contrail_image_id:
+                contrail_image_owned = bool(self._serverDb.get_image(
+                    match_dict={'id': contrail_image_id}, username=username))
+                if not contrail_image_owned:
+                    return 'Error: Insufficient permissions for image %s' \
+                           % contrail_image_id
+
+            # Ensure user has RW to cluster
             cluster_id = ret_data['cluster_id']
+            cluster_owned = bool(self._serverDb.get_cluster(
+                match_dict={'id': cluster_id}, username=username, perms='RW'))
+            if not cluster_owned:
+                return 'Error: Insufficient permissions for cluster %s' \
+                       % cluster_id
+
             provision_server_list, role_sequence, provision_status = \
                                       self.prepare_provision(ret_data)
 
