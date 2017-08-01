@@ -564,6 +564,27 @@ class VncServerManager():
             role_data = {'role': 'administrator', 'level': 100}
             self._serverDb.add_role(role_data=role_data)
 
+        # Create admin user if necessary
+        if not self._serverDb.get_user(match_dict={'username': 'admin'}):
+            username = 'admin'
+            password = 'c0ntrail123'
+            role = 'administrator'
+            tstamp = str(datetime.datetime.utcnow())
+            h = self._backend._hash(username, password)
+            h = h.decode('ascii')
+            self._sqlite_backend.users[username] = {
+                'role': role,
+                'hash': h,
+                'email_addr': '',
+                'desc': '',
+                'creation_date': tstamp,
+                'last_login': tstamp
+            }
+            self._sqlite_backend.save_users()
+            self._sqlite_backend.connection.commit()
+            user_data = {'username': 'admin', 'role': 'administrator'}
+            self._serverDb.add_user(user_data=user_data)
+
         # Session
         config = {
             'session.encrypt_key': '+9#uc(Xcb2!G?44',

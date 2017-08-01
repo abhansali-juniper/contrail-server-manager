@@ -148,6 +148,13 @@ class ServerMgrDb:
                          level TEXT,
                          server_table TEXT DEFAULT '[]',
                          cluster_table TEXT DEFAULT '[]')""")
+                # Create user table
+                cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS " + user_table +
+                    """ (username TEXT PRIMARY KEY,
+                         role TEXT,
+                         email_addr TEXT,
+                         desc TEXT)""")
                 # Add columns for image_table
                 self._add_table_column(cursor, image_table, "category", "TEXT")
                 self._add_table_column(cursor, image_table, "R", "TEXT", "[]")
