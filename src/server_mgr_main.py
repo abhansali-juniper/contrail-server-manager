@@ -556,6 +556,14 @@ class VncServerManager():
             pending_reg_tname='register_table', initialize=cork_init_db)
         self._backend = Cork(backend=self._sqlite_backend)
 
+        # Create administrator role if necessary
+        if not self._serverDb.get_role(match_dict={'role': 'administrator'}):
+            self._sqlite_backend.roles['administrator'] = 100
+            self._sqlite_backend.save_roles()
+            self._sqlite_backend.connection.commit()
+            role_data = {'role': 'administrator', 'level': 100}
+            self._serverDb.add_role(role_data=role_data)
+
         # Session
         config = {
             'session.encrypt_key': '+9#uc(Xcb2!G?44',

@@ -144,8 +144,10 @@ class ServerMgrDb:
                 # Create role table
                 cursor.execute(
                     "CREATE TABLE IF NOT EXISTS " + role_table +
-                    """ (role TEXT PRIMARY KEY NOT NULL,
-                         level TEXT)""")
+                    """ (role TEXT PRIMARY KEY,
+                         level TEXT,
+                         server_table TEXT DEFAULT '[]',
+                         cluster_table TEXT DEFAULT '[]')""")
                 # Add columns for image_table
                 self._add_table_column(cursor, image_table, "category", "TEXT")
                 self._add_table_column(cursor, image_table, "R", "TEXT", "[]")
@@ -788,9 +790,9 @@ class ServerMgrDb:
             role_data = ServerMgrUtil.convert_unicode(role_data)
 
             # Defaults
-            if not role_data['server_table']:
+            if not role_data.get('server_table', None):
                 role_data['server_table'] = '[]'
-            if not role_data['cluster_table']:
+            if not role_data.get('cluster_table', None):
                 role_data['cluster_table'] = '[]'
 
             # Add to db
