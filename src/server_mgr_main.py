@@ -2621,7 +2621,7 @@ class VncServerManager():
                     generate_storage_keys(cur_cluster)
                     self.generate_passwords(cur_cluster.get("parameters", {}))
                     if self._serverDb.add_cluster(
-                            cur_cluster, user_obj=user_obj) == 1:
+                            cur_cluster, user_obj=user_obj) == -1:
                         return 'Error: Insufficient permissions.'
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
