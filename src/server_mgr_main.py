@@ -3900,13 +3900,21 @@ class VncServerManager():
             else:
                 msg = "Validation failed"
                 self.log_and_raise_exception(msg)
-            images = self._serverDb.get_image(image_dict, detail=True,
-                                              username=username, perms='RW')
+            images = self._serverDb.get_image(image_dict, detail=True)
+            images_owned = self._serverDb.get_image(image_dict, detail=True,
+                                                    username=username,
+                                                    perms='RW')
             if not images:
                 msg = "Image %s doesn't exist" % (image_dict)
                 self.log_and_raise_exception(msg)
                 self._smgr_log.log(self._smgr_log.ERROR,
                         msg)
+            elif not images_owned:
+                msg = "Error: Insufficient permissions for image %s" % \
+                      image_dict
+                self.log_and_raise_exception(msg)
+                self._smgr_log.log(self._smgr_log.ERROR,
+                                   msg)
             image = images[0]
             image_id = image['id']
             image_path = image['path']
