@@ -6819,9 +6819,11 @@ class VncServerManager():
                             'package_image_id': entity['new_image']}
                 ret_data = self.validate_smgr_provision(
                                      "PROVISION", req_json, issu_flag=issu_flag)
+            container = False
             if ret_data['status'] == 0:
                 if 'category' in ret_data and ret_data['category'] == 'container':
                     server_packages = ret_data['package_image_id']
+                    container = True
                 else:
                     server_packages = ret_data['server_packages']
             else:
@@ -6829,12 +6831,16 @@ class VncServerManager():
                 self.log_and_raise_exception(msg)
 
             # Ensure user has read to server packages image
-            server_packages = ret_data['server_packages']
+            server_packages_id = None
+            if container:
+                server_packages_id = server_packages
+            else:
+                server_packages_id = ret_data['server_packages'][0]['package_image_id'].encode('ascii')
             server_packages_owned = bool(self._serverDb.get_image(
-                match_dict={'id': server_packages}, username=username))
+                match_dict={'id': server_packages_id}, username=username))
             if not server_packages_owned:
                 return 'Error: Insufficient permissions for image %s' \
-                       % server_packages
+                       % server_packages_id
 
             # Ensure user has read to contrail image
             contrail_image_id = ret_data.get('contrail_image_id', None)
