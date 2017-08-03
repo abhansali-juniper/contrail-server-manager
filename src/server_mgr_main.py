@@ -2072,7 +2072,8 @@ class VncServerManager():
         diff=difflib.ndiff(str1, str2)
         return ''.join(diff)
 
-    def put_container_image(self, entity, image, cleanup_list):
+    def put_container_image(self, entity, image, cleanup_list, username=None,
+                            is_admin=None):
         new_containers = {}
         image_id       = image.get("id", None)
         image_path     = image.get("path", None)
@@ -2172,10 +2173,11 @@ class VncServerManager():
             'path': image_path,
             'category' : image_category,
             'parameters' : image_params}
-        self._serverDb.add_image(image_data)
+        self._serverDb.add_image(image_data, admin=is_admin, username=username)
         return resp_msg
 
-    def validate_container_image(self, image_params, entity, image, cleanup_list):
+    def validate_container_image(self, image_params, entity, image,
+                                 cleanup_list, username=None, is_admin=None):
         for container in image_params.get("containers", None):
             role  = container.get("role", None)
             if role not in _valid_roles:
@@ -2186,7 +2188,8 @@ class VncServerManager():
                  resp_msg = self.form_operartion_data(msg, 0, entity)
                  return False, resp_msg
 
-        gevent.spawn(self.put_container_image, entity, image, cleanup_list)
+        gevent.spawn(self.put_container_image, entity, image, cleanup_list,
+                     username, is_admin)
         msg = \
         "Image add/Modify of containers happening in the background. "\
         "Check /var/log/contrail-server-manager/debug.log "\
@@ -2197,11 +2200,14 @@ class VncServerManager():
         # Detect whether logged in and whether admin
         logged_in = False
         is_admin = False
+        username = None
         if self.sufficient_perms(role='administrator', fixed_role=True):
             is_admin = True
             logged_in = True
+            username = self._backend.current_user.username
         elif self.sufficient_perms():
             logged_in = True
+            username = self._backend.current_user.username
 
         # if not logged in, don't give access
         if not logged_in:
@@ -2288,7 +2294,7 @@ class VncServerManager():
                             # Get the contrail package version
                             for key in container_params:
                                 image_params[key] = container_params[key]
-                            add_db, additional_ret_msg = self.validate_container_image(image_params, entity, image, image_params.pop("cleanup_list"))
+                            add_db, additional_ret_msg = self.validate_container_image(image_params, entity, image, image_params.pop("cleanup_list"), username=username, is_admin=is_admin)
                             image_params['version'] = playbooks_version
                             image_params['playbooks_version'] = playbooks_version
                             image_params['contrail-container-package'] = True
@@ -2352,7 +2358,6 @@ class VncServerManager():
                             'path': image_path,
                             'category' : image_category,
                             'parameters' : image_params}
-                        username = self._backend.current_user.username
                         self._serverDb.add_image(image_data, admin=is_admin,
                                                  username=username)
         except subprocess.CalledProcessError as e:
@@ -2982,11 +2987,14 @@ class VncServerManager():
         # Detect whether logged in and whether admin
         logged_in = False
         is_admin = False
+        username = None
         if self.sufficient_perms(role='administrator', fixed_role=True):
             is_admin = True
             logged_in = True
+            username = self._backend.current_user.username
         elif self.sufficient_perms():
             logged_in = True
+            username = self._backend.current_user.username
 
         # if not logged in, don't give access
         if not logged_in:
@@ -3076,7 +3084,7 @@ class VncServerManager():
                     image_data.update({'path': dest})
                     image_data.update({'parameters' : image_params})
                     entity = bottle.request.json
-                    add_db, additional_ret_msg = self.validate_container_image(image_params, entity, image_data, image_params.pop("cleanup_list"))
+                    add_db, additional_ret_msg = self.validate_container_image(image_params, entity, image_data, image_params.pop("cleanup_list"), username=username, is_admin=is_admin)
                     msg = \
                     "Image upload of containers happening in the background. "\
                     "Check /var/log/contrail-server-manager/debug.log "\
@@ -3125,7 +3133,6 @@ class VncServerManager():
             image_data.update({'path': dest})
             image_data.update({'parameters' : image_params})
             if add_db:
-                username = self._backend.current_user.username
                 self._serverDb.add_image(image_data, admin=is_admin,
                                          username=username)
             # Removing the package/image from /etc/contrail_smgr/images/ after it has been added
