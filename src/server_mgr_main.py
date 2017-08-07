@@ -548,19 +548,16 @@ class VncServerManager():
         self._pipe_start_app = bottle.app()
 
         # SQLite Backend
-        cork_db_path = self._args.server_manager_base_dir + 'smgr_auth_data.db'
-        cork_init_db = not os.path.isfile(cork_db_path)
         self._sqlite_backend = SQLiteBackend(
-            filename=cork_db_path,
+            filename=self._args.server_manager_base_dir
+                     + self._args.database_name,
             users_tname='user_table', roles_tname='role_table',
-            pending_reg_tname='register_table', initialize=cork_init_db)
+            pending_reg_tname='register_table')
+        self._sqlite_backend._connection = self._serverDb._con
         self._backend = Cork(backend=self._sqlite_backend)
 
         # Create administrator role if necessary
         if not self._serverDb.get_role(match_dict={'role': 'administrator'}):
-            self._sqlite_backend.roles['administrator'] = 100
-            self._sqlite_backend.save_roles()
-            self._sqlite_backend.connection.commit()
             role_data = {'role': 'administrator', 'level': 100}
             self._serverDb.add_role(role_data=role_data)
 
@@ -572,17 +569,9 @@ class VncServerManager():
             tstamp = str(datetime.datetime.utcnow())
             h = self._backend._hash(username, password)
             h = h.decode('ascii')
-            self._sqlite_backend.users[username] = {
-                'role': role,
-                'hash': h,
-                'email_addr': '',
-                'desc': '',
-                'creation_date': tstamp,
-                'last_login': tstamp
-            }
-            self._sqlite_backend.save_users()
-            self._sqlite_backend.connection.commit()
-            user_data = {'username': 'admin', 'role': 'administrator'}
+            user_data = {'username': username, 'role': role, 'hash': h,
+                         'email_addr': '', 'desc': '', 'creation_date': tstamp,
+                         'last_login': tstamp}
             self._serverDb.add_user(user_data=user_data)
 
         # Session
@@ -5191,6 +5180,7 @@ class VncServerManager():
         username = request.json['username'].encode('ascii')
         password = request.json['password'].encode('ascii')
         self._backend.login(username=username, password=password)
+        self._sqlite_backend.connection.commit()
 
         # Return whether login was successful
         try:

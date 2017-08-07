@@ -153,8 +153,11 @@ class ServerMgrDb:
                     "CREATE TABLE IF NOT EXISTS " + user_table +
                     """ (username TEXT PRIMARY KEY,
                          role TEXT,
+                         hash TEXT,
                          email_addr TEXT,
-                         desc TEXT)""")
+                         desc TEXT,
+                         creation_date TEXT,
+                         last_login TEXT)""")
                 # Add columns for image_table
                 self._add_table_column(cursor, image_table, "category", "TEXT")
                 self._add_table_column(cursor, image_table, "R", "TEXT", "[]")
