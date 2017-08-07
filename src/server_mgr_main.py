@@ -577,8 +577,10 @@ class VncServerManager():
         # Session
         config = {
             'session.encrypt_key': '+9#uc(Xcb2!G?44',
+            'session.save_accessed_time': True,
+            'session.timeout': 300,
             'session.type': 'cookie',
-            'session.validate_key': True,
+            'session.validate_key': 'IbgF23wq7z'
         }
         self._pipe_start_app = SessionMiddleware(wrap_app=self._pipe_start_app,
                                                  config=config)
