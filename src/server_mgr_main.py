@@ -2411,25 +2411,12 @@ class VncServerManager():
                 resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
                 abort(404, resp_msg)
 
-            # Build user data
-            user_data = {}
-            user_data['username'] = username
-            if role:
-                user_data['role'] = role
-            if desc:
-                user_data['desc'] = desc
-            if email:
-                user_data['email_addr'] = email
-
             # Modify user
             if self._serverDb.get_user(match_dict={'username': username}):
-                # Modify in cork db
+                # Modify in db
                 user_obj = self._backend.user(username)
                 user_obj.update(role=role, pwd=password, email_addr=email)
                 self._sqlite_backend.connection.commit()
-
-                # Modify user in server manager db
-                self._serverDb.modify_user(user_data)
 
             # Add user
             else:
@@ -2440,14 +2427,11 @@ class VncServerManager():
                                                          None)
                     abort(404, resp_msg)
 
-                # Add user to cork
+                # Add to db
                 self._backend.create_user(username=username, role=role,
                                           password=password, email_addr=email,
                                           description=desc)
                 self._sqlite_backend.connection.commit()
-
-                # Add user to server manager db
-                self._serverDb.add_user(user_data)
 
         # Catch exceptions
         except ServerMgrException as e:
@@ -2512,12 +2496,7 @@ class VncServerManager():
 
             # Modify role
             if self._serverDb.get_role(match_dict={'role': role}):
-                # Modify in cork db
-                if level:
-                    self._backend.delete_role(role=role)
-                    self._backend.create_role(role=role, level=level)
-
-                # Modify role in server manager db
+                # Modify in db
                 self._serverDb.modify_role(role_data)
 
             # Add role
@@ -2529,11 +2508,7 @@ class VncServerManager():
                                                          None)
                     abort(404, resp_msg)
 
-                # Add role to cork
-                self._backend.create_role(role=role, level=level)
-                self._sqlite_backend.connection.commit()
-
-                # Add role to server manager db
+                # Add to db
                 self._serverDb.add_role(role_data)
 
         # Catch exceptions
@@ -4027,7 +4002,7 @@ class VncServerManager():
             users = self._serverDb.get_user(user_dict, detail=True)
 
             # Stop if user does not exist
-            if not users or self._backend.user(users[0]['username']) is None:
+            if not users:
                 msg = "User %s doesn't exist" % user_dict
                 self.log_and_raise_exception(msg)
                 self._smgr_log.log(self._smgr_log.ERROR,
@@ -4035,11 +4010,7 @@ class VncServerManager():
             user = users[0]
             username = user['username']
 
-            # Remove from cork db
-            self._backend.delete_user(username)
-            self._sqlite_backend.connection.commit()
-
-            # Remove from server mgr db
+            # Remove from db
             self._serverDb.delete_user(user_dict)
 
         # Catch exceptions
@@ -4090,29 +4061,16 @@ class VncServerManager():
                 msg = "Role %s doesn't exist" % role_dict
                 self.log_and_raise_exception(msg)
                 self._smgr_log.log(self._smgr_log.ERROR, msg)
-            role = roles[0]['role']
-            role_in_db = False
-            for curr_role in self._backend.list_roles():
-                if role == curr_role[0]:
-                    role_in_db = True
-                    break
-            if not role_in_db:
-                msg = "Role %s doesn't exist" % role_dict
-                self.log_and_raise_exception(msg)
-                self._smgr_log.log(self._smgr_log.ERROR, msg)
 
             # Stop if there are users assigned this role
+            role = roles[0]['role']
             users = self._serverDb.get_user({'role': role})
             if users:
                 msg = "Users currently assigned role %s" % role_dict
                 self.log_and_raise_exception(msg)
                 self._smgr_log.log(self._smgr_log.ERROR, msg)
 
-            # Remove from cork db
-            self._backend.delete_role(role)
-            self._sqlite_backend.connection.commit()
-
-            # Remove from server mgr db
+            # Remove from db
             self._serverDb.delete_role(role_dict)
 
         # Catch exceptions
