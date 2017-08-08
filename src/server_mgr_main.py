@@ -2587,7 +2587,8 @@ class VncServerManager():
                     self.generate_passwords(cur_cluster.get("parameters", {}))
                     if self._serverDb.add_cluster(
                             cur_cluster, user_obj=user_obj) == -1:
-                        return 'Error: Insufficient permissions.'
+                        return 'Error: Insufficient permissions for ' \
+                               'cluster table.'
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
                                 self._smgr_trans_log.PUT_SMGR_CFG_CLUSTER,
@@ -2821,7 +2822,8 @@ class VncServerManager():
                     server['discovered'] = "false"
                     if self._serverDb.add_server(server, user_obj=user_obj) \
                         == -1:
-                        return 'Error: Insufficient permissions.'
+                        return 'Error: Insufficient permissions for server ' \
+                               'table.'
                 else:
                     return 'Error: Insufficient permissions.'
 
