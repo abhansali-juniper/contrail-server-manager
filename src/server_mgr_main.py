@@ -2449,7 +2449,7 @@ class VncServerManager():
 
         self._smgr_trans_log.log(bottle.request,
                                  self._smgr_trans_log.PUT_SMGR_CFG_USER)
-        msg = "User add success"
+        msg = "User add/modify success"
         resp_msg = self.form_operartion_data(msg, 0, entity)
         return resp_msg
     # end put_user
