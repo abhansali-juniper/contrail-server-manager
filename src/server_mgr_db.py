@@ -1278,12 +1278,21 @@ class ServerMgrDb:
     # End of get_image
 
     def get_user(self, match_dict=None, unmatch_dict=None, detail=False,
-                 field_list=None):
+                 field_list=None, username=None, is_admin=False):
         try:
+            # If not admin, only show info about self
+            if not is_admin:
+                match_dict = {'username': username}
             if not field_list:
                 field_list = ["username"]
             users = self._get_items(user_table, match_dict, unmatch_dict,
                                     detail, field_list)
+
+            # Don't show password hash
+            if users:
+                for user_dict in users:
+                    if user_dict.get('hash', None):
+                        user_dict['hash'] = '********'
         except Exception as e:
             raise e
         return users

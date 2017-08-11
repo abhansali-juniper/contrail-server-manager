@@ -1848,7 +1848,15 @@ class VncServerManager():
     # API Call to list users
     def get_user(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        username = None
+        is_admin = False
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            username = self._backend.current_user.username
+            is_admin = True
+        elif self.sufficient_perms():
+            username = self._backend.current_user.username
+            is_admin = False
+        else:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1863,7 +1871,9 @@ class VncServerManager():
                     match_dict[match_key] = match_value
                 detail = ret_data["detail"]
             users = self._serverDb.get_user(match_dict, detail=detail,
-                                            field_list=select_clause)
+                                            field_list=select_clause,
+                                            username=username,
+                                            is_admin=is_admin)
 
         except ServerMgrException as e:
             self._smgr_trans_log.log(bottle.request,
