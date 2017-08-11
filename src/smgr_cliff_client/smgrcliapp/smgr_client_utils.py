@@ -279,8 +279,8 @@ class SmgrClientUtils():
             os.makedirs(COOKIE_DIR)
 
         # Get credentials
-        login_username = os.environ.get('OS_USERNAME')
-        login_password = os.environ.get('OS_PASSWORD')
+        login_username = os.environ.get('SM_USERNAME')
+        login_password = os.environ.get('SM_PASSWORD')
 
         # Determine currently logged in user
         response = SmgrClientUtils.send_REST_request(
