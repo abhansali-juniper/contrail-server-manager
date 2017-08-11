@@ -2387,7 +2387,15 @@ class VncServerManager():
     # API Call to add user
     def put_user(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        user_logged_in = None
+        is_admin = False
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            user_logged_in = self._backend.current_user.username
+            is_admin = True
+        elif self.sufficient_perms():
+            user_logged_in = self._backend.current_user.username
+            is_admin = False
+        else:
             return 'Error: Insufficient permissions.'
 
         # Get passed in params
@@ -2415,6 +2423,16 @@ class VncServerManager():
                 resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
                 abort(404, resp_msg)
 
+            # Users can only modify self
+            if not is_admin and user_logged_in != username:
+                return 'Error: Insufficient permissions.'
+
+            # Do not allow users to change own role
+            if not is_admin and role:
+                msg = 'Cannot change own role.'
+                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
+                abort(404, resp_msg)
+
             # Ensure role exists
             if role and not self._serverDb.get_role(match_dict={'role': role}):
                 msg = 'Role does not exist.'
@@ -2430,6 +2448,10 @@ class VncServerManager():
 
             # Add user
             else:
+                # Only administrators may add users
+                if not is_admin:
+                    return 'Error: Insufficient permissions.'
+
                 # role, password are required
                 if not (role and password):
                     msg = 'role and password are required parameters.'

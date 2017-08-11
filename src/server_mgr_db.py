@@ -1278,7 +1278,7 @@ class ServerMgrDb:
     # End of get_image
 
     def get_user(self, match_dict=None, unmatch_dict=None, detail=False,
-                 field_list=None, username=None, is_admin=False):
+                 field_list=None, username=None, is_admin=True):
         try:
             # If not admin, only show info about self
             if not is_admin:
