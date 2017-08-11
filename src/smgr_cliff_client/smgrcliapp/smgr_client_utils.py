@@ -273,7 +273,10 @@ class SmgrClientUtils():
                                  payload=None, match_key=None, match_value=None,
                                  detail=False, force=False, method="PUT"):
         # Cookie file location
-        COOKIE_FILE = 'cookie.txt'
+        COOKIE_DIR = os.path.expanduser('~/.SM/')
+        COOKIE_FILE = '%scookie' % COOKIE_DIR
+        if not os.path.exists(COOKIE_DIR):
+            os.makedirs(COOKIE_DIR)
 
         # Get credentials
         login_username = os.environ.get('OS_USERNAME')
