@@ -29,6 +29,7 @@ import paramiko
 import base64
 import shutil
 import string
+import random as rand_gen
 import tarfile
 from urlparse import urlparse, parse_qs
 from time import gmtime, strftime, localtime
@@ -576,11 +577,14 @@ class VncServerManager():
 
         # Session
         config = {
-            'session.encrypt_key': '+9#uc(Xcb2!G?44',
+            'session.encrypt_key': ''.join(rand_gen.SystemRandom().choice(
+                string.ascii_letters + string.digits + string.punctuation)
+                                           for _ in range(64)),
             'session.save_accessed_time': True,
             'session.timeout': 300,
             'session.type': 'cookie',
-            'session.validate_key': 'IbgF23wq7z'
+            'session.validate_key': ''.join(rand_gen.SystemRandom().choice(
+                string.ascii_letters + string.digits) for _ in range(64))
         }
         self._pipe_start_app = SessionMiddleware(wrap_app=self._pipe_start_app,
                                                  config=config)
