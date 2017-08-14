@@ -146,8 +146,8 @@ class ServerMgrDb:
                     "CREATE TABLE IF NOT EXISTS " + role_table +
                     """ (role TEXT PRIMARY KEY,
                          level TEXT,
-                         server_table TEXT DEFAULT '[]',
-                         cluster_table TEXT DEFAULT '[]')""")
+                         R TEXT DEFAULT '[]',
+                         RW TEXT DEFAULT '[]')""")
                 # Create user table
                 cursor.execute(
                     "CREATE TABLE IF NOT EXISTS " + user_table +
@@ -181,8 +181,8 @@ class ServerMgrDb:
                 self._add_table_column(cursor, server_table, "R", "TEXT", "[]")
                 self._add_table_column(cursor, server_table, "RW", "TEXT", "[]")
                 # Add columns for role table
-                self._add_table_column(cursor, role_table, "server_table", "TEXT", "[]")
-                self._add_table_column(cursor, role_table, "cluster_table", "TEXT", "[]")
+                self._add_table_column(cursor, role_table, "R", "TEXT", "[]")
+                self._add_table_column(cursor, role_table, "RW", "TEXT", "[]")
 
             self._smgr_log.log(self._smgr_log.DEBUG, "Created tables")
 
@@ -214,7 +214,7 @@ class ServerMgrDb:
         # Query database to check for permissions
         role = user_obj.role
         query_str = "SELECT * FROM role_table WHERE role = '%s' AND %s " \
-                    "LIKE '%%''%s''%%'" % (role, table_name, perms)
+                    "LIKE '%%''%s''%%'" % (role, perms, table_name)
         with self._con:
             cursor = self._con.cursor()
             cursor.execute(query_str)
@@ -800,10 +800,10 @@ class ServerMgrDb:
             role_data = ServerMgrUtil.convert_unicode(role_data)
 
             # Defaults
-            if not role_data.get('server_table', None):
-                role_data['server_table'] = '[]'
-            if not role_data.get('cluster_table', None):
-                role_data['cluster_table'] = '[]'
+            if not role_data.get('R', None):
+                role_data['R'] = '[]'
+            if not role_data.get('RW', None):
+                role_data['RW'] = '[]'
 
             # Add to db
             self._add_row(role_table, role_data)

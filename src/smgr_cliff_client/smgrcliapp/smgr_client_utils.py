@@ -121,9 +121,9 @@ main_object_dict = {
     ]),
     "role": OrderedDict([
         ("role", "Specify unique role name for this role"),
-        ("level", "Specify level for this user"),
-        ("server_table", "Specify server_table permissions for this role"),
-        ("cluster_table", "Specify server_table permissions for this role"),
+        ("level", "Specify level for this role"),
+        ("R", "Specify which tables this role has read permissions for"),
+        ("RW", "Specify which tables this role has read/write permissions for"),
     ]),
     "tag": OrderedDict([
         ("tag1", "Specify tag name for tag1"),

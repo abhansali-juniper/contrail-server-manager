@@ -2509,8 +2509,8 @@ class VncServerManager():
             abort(404, resp_msg)
         entity = entity[0]
         role = entity.get("role", None)
-        server_table = entity.get("server_table", None)
-        cluster_table = entity.get("cluster_table", None)
+        R = entity.get("R", None)
+        RW = entity.get("RW", None)
         level = entity.get("level", None)
 
         try:
@@ -2523,10 +2523,10 @@ class VncServerManager():
             # Build role data
             role_data = {}
             role_data['role'] = role
-            if server_table:
-                role_data['server_table'] = server_table
-            if cluster_table:
-                role_data['cluster_table'] = cluster_table
+            if R:
+                role_data['R'] = R
+            if RW:
+                role_data['RW'] = RW
             if level:
                 role_data['level'] = level
 
