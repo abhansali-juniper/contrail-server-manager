@@ -502,8 +502,10 @@ class ServerMgrDb:
                     if username:
                         select_str += " AND %s LIKE '%%''%s''%%'" % \
                                       (perms, username)
+                        select_str += " OR %s LIKE '%%''*''%%'" % perms
                         if perms == 'R':
                             select_str += " OR RW LIKE '%%''%s''%%'" % username
+                        select_str += " OR RW LIKE '%%''*''%%'" % perms
                 else:
                     if match_dict:
                         match_list = ["%s = \'%s\'" %(
@@ -517,14 +519,18 @@ class ServerMgrDb:
                         if username:
                             select_str += " AND %s LIKE '%%''%s''%%'" % \
                                           (perms, username)
+                            select_str += " OR %s LIKE '%%''*''%%'" % perms
                             if perms == 'R':
                                 select_str += " OR RW LIKE '%%''%s''%%'" % \
                                               username
+                                select_str += " OR RW LIKE '%%''*''%%'"
                     elif username:
                         select_str += " WHERE %s LIKE '%%''%s''%%'" % \
                                       (perms, username)
+                        select_str += " OR %s LIKE '%%''*''%%'" % perms
                         if perms == 'R':
                             select_str += " OR RW LIKE '%%''%s''%%'" % username
+                            select_str += " OR RW LIKE '%%''*''%%'"
                 cursor.execute(select_str)
             rows = [x for x in cursor]
             cols = [x[0] for x in cursor.description]
@@ -756,19 +762,10 @@ class ServerMgrDb:
             if image_parameters is not None:
                 image_data['parameters'] = str(image_parameters)
 
-            # If admin, give all other users read access to image
+            # If admin, give all users read access to image
             if admin:
-                users = self.get_user(field_list=['username'])
-                user_str = '['
-                first = True
-                for user in users:
-                    if not first:
-                        user_str += ', '
-                    else:
-                        first = False
-                    user_str += "'%s'" % user['username']
-                user_str += ']'
-                image_data['R'] = user_str
+                image_data['R'] = "['*']"
+                image_data['RW'] = ''
 
             # Otherwise, give self read/write access to image
             elif username:
