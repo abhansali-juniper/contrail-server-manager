@@ -30,6 +30,8 @@ class ServerManagerCLI(App):
     smgr_ip = None
     default_config = dict()
     defaults_file = None
+    temp_username = None
+    temp_password = None
 
     def __init__(self):
         super(ServerManagerCLI, self).__init__(
@@ -98,6 +100,16 @@ class ServerManagerCLI(App):
             help='The ini file that specifies the default parameter values for Objects like Cluster, Server, etc.'
                  'Default is /etc/contrail/sm-client-config.ini'
         )
+        parser.add_argument(
+            '--SM_USERNAME',
+            default=None,
+            help='Username to authenticate current command with.'
+        )
+        parser.add_argument(
+            '--SM_PASSWORD',
+            default=None,
+            help='Password to authenticate current command with.'
+        )
         return parser
 
     def initialize_app(self, argv):
@@ -138,6 +150,10 @@ class ServerManagerCLI(App):
                 self.smgr_port = self.default_config["smgr"]["listen_port"]
             else:
                 self.report_missing_config("smgr_port")
+
+            # Temporary credentials
+            self.temp_username = getattr(self.options, "SM_USERNAME", None)
+            self.temp_password = getattr(self.options, "SM_PASSWORD", None)
 
         except Exception as e:
             self.stdout.write("Exception: %s : Error reading config file %s\n" % (e.message, self.defaults_file))

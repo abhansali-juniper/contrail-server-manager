@@ -271,31 +271,46 @@ class SmgrClientUtils():
     @staticmethod
     def send_authed_REST_request(ip, port, obj=None, rest_api_params=None,
                                  payload=None, match_key=None, match_value=None,
-                                 detail=False, force=False, method="PUT"):
+                                 detail=False, force=False, method="PUT",
+                                 temp_username=None, temp_password=None):
+
+        # Determine whether to use temporary credentials
+        temp_credentials = bool(temp_username) and bool(temp_password)
+
         # Cookie file location
         COOKIE_DIR = os.path.expanduser('~/.SM/')
-        COOKIE_FILE = '%scookie' % COOKIE_DIR
+        if temp_credentials:
+            COOKIE_FILE = '%stemp_cookie' % COOKIE_DIR
+        else:
+            COOKIE_FILE = '%scookie' % COOKIE_DIR
         if not os.path.exists(COOKIE_DIR):
             os.makedirs(COOKIE_DIR)
 
         # Get credentials
-        login_username = os.environ.get('SM_USERNAME')
-        login_password = os.environ.get('SM_PASSWORD')
+        if temp_credentials:
+            login_username = temp_username
+            login_password = temp_password
+        else:
+            login_username = os.environ.get('SM_USERNAME')
+            login_password = os.environ.get('SM_PASSWORD')
 
         # Determine currently logged in user
-        response = SmgrClientUtils.send_REST_request(
-            ip=ip, port=port, obj='current_user', method='GET', cookie=COOKIE_FILE)
-        response_json = None
-        try:
-            response_json = json.loads(response)
-        except Exception as e:
-            pass
-        logged_in = type(response_json) is dict and str(response) != '{}'
+        if not temp_credentials:
+            response = SmgrClientUtils.send_REST_request(
+                ip=ip, port=port, obj='current_user', method='GET',
+                cookie=COOKIE_FILE)
+            response_json = None
+            try:
+                response_json = json.loads(response)
+            except Exception as e:
+                pass
+            logged_in = type(response_json) is dict and str(response) != '{}'
 
         # Authenticate if credentials supplied
-        if login_username is not None and login_password is not None:
+        if temp_credentials or \
+                (login_username is not None and login_password is not None):
             # Logout if necessary
-            if logged_in:
+            if not temp_credentials and logged_in:
                 sys.stderr.write('Current user: ' + response_json['user'] +
                                  '\n')
                 if response_json['user'] != login_username:
@@ -306,7 +321,7 @@ class SmgrClientUtils():
                     logged_in = False
 
             # Login if necessary
-            if not logged_in:
+            if temp_credentials or not logged_in:
                 credentials = {
                     'username': login_username,
                     'password': login_password
@@ -324,11 +339,18 @@ class SmgrClientUtils():
                 cookie=COOKIE_FILE)
 
 
-        # send REST request and return
-        return SmgrClientUtils.send_REST_request(
+        # send REST request
+        ret_data = SmgrClientUtils.send_REST_request(
             ip=ip, port=port, obj=obj, rest_api_params=rest_api_params,
             payload=payload, match_key=match_key, match_value=match_value,
             detail=detail, force=force, method=method, cookie=COOKIE_FILE)
+
+        # Delete temporary cookie if exists
+        if temp_credentials and os.path.exists(COOKIE_FILE):
+            os.remove(COOKIE_FILE)
+
+        # Return
+        return ret_data
     # end def send_authed_REST_request
 
     @staticmethod

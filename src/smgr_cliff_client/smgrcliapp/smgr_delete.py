@@ -317,9 +317,11 @@ class Delete(Command):
             rest_api_params = self.delete_dhcp_subnet(parsed_args)
 
         if rest_api_params:
-            resp = smgrutils.send_authed_REST_request(self.smgr_ip, self.smgr_port, obj=rest_api_params["object"],
-                                              match_key=rest_api_params["match_key"],
-                                              match_value=rest_api_params["match_value"],
-                                              method="DELETE")
+            resp = smgrutils.send_authed_REST_request(
+                self.smgr_ip, self.smgr_port, obj=rest_api_params["object"],
+                match_key=rest_api_params["match_key"],
+                match_value=rest_api_params["match_value"], method="DELETE",
+                temp_username=self.app.temp_username,
+                temp_password=self.app.temp_password)
             smgrutils.print_rest_response(resp)
             self.app.stdout.write("\n" + str(smgrutils.print_rest_response(resp)) + "\n")

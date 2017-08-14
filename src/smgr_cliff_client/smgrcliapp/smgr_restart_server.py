@@ -118,6 +118,8 @@ class Restart(Command):
         if payload:
             resp = smgrutils.send_authed_REST_request(
                 self.smgr_ip, self.smgr_port, obj="server/restart",
-                payload=payload, method="POST")
+                payload=payload, method="POST",
+                temp_username=self.app.temp_username,
+                temp_password=self.app.temp_password)
             self.app.stdout.write("\n" + str(smgrutils.print_rest_response(resp)) + "\n")
         # End of restart_server

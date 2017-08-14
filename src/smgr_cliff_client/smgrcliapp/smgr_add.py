@@ -511,7 +511,10 @@ class Add(Command):
         except Exception as e:
             self.app.stdout.write("\nException here:" + str(e) + "\n")
         if payload:
-            resp = smgrutils.send_authed_REST_request(self.smgr_ip, self.smgr_port, obj=smgr_obj, payload=payload, method="PUT")
+            resp = smgrutils.send_authed_REST_request(
+                self.smgr_ip, self.smgr_port, obj=smgr_obj, payload=payload,
+                method="PUT", temp_username=self.app.temp_username,
+                temp_password=self.app.temp_password)
             smgrutils.print_rest_response(resp)
             self.app.stdout.write("\n" + str(smgrutils.print_rest_response(resp)) + "\n")
         else:
