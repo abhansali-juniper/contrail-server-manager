@@ -345,6 +345,13 @@ class SmgrClientUtils():
             payload=payload, match_key=match_key, match_value=match_value,
             detail=detail, force=force, method=method, cookie=COOKIE_FILE)
 
+        # Logout if using temp credentials
+        if temp_credentials:
+            sys.stderr.write('Attempting logout.\n')
+            SmgrClientUtils.send_REST_request(ip=ip, port=port, obj='logout',
+                                              method='GET', cookie=COOKIE_FILE)
+            logged_in = False
+
         # Delete temporary cookie if exists
         if temp_credentials and os.path.exists(COOKIE_FILE):
             os.remove(COOKIE_FILE)
