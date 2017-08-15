@@ -589,6 +589,10 @@ class VncServerManager():
         self._pipe_start_app = SessionMiddleware(wrap_app=self._pipe_start_app,
                                                  config=config)
 
+        # Authentication logging
+        self.ACCESS_LOG = '/var/log/contrail-server-manager/access.log'
+
+
         # All bottle routes to be defined here...
         # REST calls for GET methods (Get Info about existing records)
         bottle.route('/all', 'GET', self.get_server_mgr_config)
@@ -5177,14 +5181,24 @@ class VncServerManager():
         # Return whether login was successful
         try:
             if self._backend.current_user.username == username:
+                with open (self.ACCESS_LOG, "a") as access_log:
+                    access_log.write('User %s logged in.\n' % username)
                 return 'Login successful.'
+            with open (self.ACCESS_LOG, "a") as access_log:
+                access_log.write('User %s failed to log in.\n' % username)
             return 'Login failed.'
         except Exception as e:
+            with open (self.ACCESS_LOG, "a") as access_log:
+                access_log.write('User %s failed to log in.\n' % username)
             return 'Login failed.'
     # End of login
 
     # Logout
     def logout(self):
+        curr_user = self._backend.current_user
+        if curr_user:
+            with open (self.ACCESS_LOG, "a") as access_log:
+                access_log.write('User %s logged out.\n' % curr_user.username)
         self._backend.logout()
     # End of logout
 
