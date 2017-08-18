@@ -738,6 +738,32 @@ class VncServerManager():
         return True
     # End of sufficient_perms
 
+    # Determine object restrictions based on currently logged in user
+    def determine_restrictions(self):
+        # If admin, no restrictions
+        if self.sufficient_perms(role='administrator', fixed_role=True):
+            user_obj = None
+            username = None
+            is_admin = True
+            logged_in = True
+
+        # If other account, restrict actions to that user
+        elif self.sufficient_perms():
+            user_obj = self._backend.current_user
+            username = user_obj.username
+            is_admin = False
+            logged_in = True
+
+        # If not logged in
+        else:
+            user_obj = None
+            username = None
+            is_admin = False
+            logged_in = False
+
+        return user_obj, username, is_admin, logged_in
+    # end determine_restrictions
+
     def get_pipe_start_app(self):
         return self._pipe_start_app
     # end get_pipe_start_app
@@ -754,7 +780,8 @@ class VncServerManager():
     # clusters & all servers is returned.
     def get_server_mgr_config(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_server_mgr_config")
@@ -785,7 +812,8 @@ class VncServerManager():
 
     def get_table_columns(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_table_columns")
@@ -811,16 +839,9 @@ class VncServerManager():
     # above. This call additionally provides a way of getting all the
     # configuration for a particular cluster.
     def get_cluster(self):
-        # If admin, show all clusters
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, show only clusters with read permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, is_admin, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "get_cluster")
@@ -866,16 +887,9 @@ class VncServerManager():
     # end get_cluster
 
     def get_server_logs(self):
-        # If admin, allow getting any log
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, only allow getting logs of servers with read access
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1496,16 +1510,9 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server_status(self):
-        # If admin, show all servers
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, show only servers with read permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         ret_data = None
@@ -1551,16 +1558,9 @@ class VncServerManager():
     # is provided, or if cluster/server is not being currently provisioned, then error is returned
     # configuration is returned.
     def get_provision_status(self):
-        # If admin, allow any server
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only servers with read permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         ret_data = None
@@ -1661,16 +1661,9 @@ class VncServerManager():
     # if provided, information about all the servers in server manager
     # configuration is returned.
     def get_server(self):
-        # If admin, show all servers
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, show only servers with read permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         ret_data = None
@@ -1790,7 +1783,8 @@ class VncServerManager():
     #API Call to list DHCP Hosts
     def get_dhcp_subnet(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1823,7 +1817,8 @@ class VncServerManager():
     #API Call to list DHCP Hosts
     def get_dhcp_host(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1856,15 +1851,8 @@ class VncServerManager():
     # API Call to list users
     def get_user(self):
         # Ensure permissions
-        username = None
-        is_admin = False
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = self._backend.current_user.username
-            is_admin = True
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-            is_admin = False
-        else:
+        _, username, is_admin, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1906,7 +1894,8 @@ class VncServerManager():
     # API Call to list roles
     def get_role(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -1946,16 +1935,9 @@ class VncServerManager():
 
     # API Call to list images
     def get_image(self):
-        # If admin, show all images
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, show only images with read permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, show nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -2200,19 +2182,8 @@ class VncServerManager():
         return False, msg
 
     def put_image(self):
-        # Detect whether logged in and whether admin
-        logged_in = False
-        is_admin = False
-        username = None
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            is_admin = True
-            logged_in = True
-            username = self._backend.current_user.username
-        elif self.sufficient_perms():
-            logged_in = True
-            username = self._backend.current_user.username
-
-        # if not logged in, don't give access
+        # Ensure permissions
+        _, username, is_admin, logged_in = self.determine_restrictions()
         if not logged_in:
             return 'Error: Insufficient permissions.'
 
@@ -2395,15 +2366,8 @@ class VncServerManager():
     # API Call to add user
     def put_user(self):
         # Ensure permissions
-        user_logged_in = None
-        is_admin = False
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            user_logged_in = self._backend.current_user.username
-            is_admin = True
-        elif self.sufficient_perms():
-            user_logged_in = self._backend.current_user.username
-            is_admin = False
-        else:
+        _, user_logged_in, is_admin, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         # Get passed in params
@@ -2497,7 +2461,8 @@ class VncServerManager():
     # API Call to add role
     def put_role(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         # Get passed in params
@@ -2576,19 +2541,9 @@ class VncServerManager():
     # end put_role
 
     def put_cluster(self):
-        # If admin, allow anything
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            user_obj = None
-            username = None
-
-        # If other account, allow only putting clusters if have write
-        # permissions
-        elif self.sufficient_perms():
-            user_obj = self._backend.current_user
-            username = user_obj.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        user_obj, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2689,7 +2644,8 @@ class VncServerManager():
 
     def put_dhcp_host(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2743,7 +2699,8 @@ class VncServerManager():
 
     def put_dhcp_subnet(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2800,19 +2757,9 @@ class VncServerManager():
         return resp_msg
 
     def put_server(self):
-        # If admin, allow anything
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            user_obj = None
-            username = None
-
-        # If other account, allow only putting servers if have write
-        # permissions
-        elif self.sufficient_perms():
-            user_obj = self._backend.current_user
-            username = user_obj.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        user_obj, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2893,7 +2840,8 @@ class VncServerManager():
     # Function to change tags used for grouping together servers.
     def put_server_tags(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -2986,19 +2934,8 @@ class VncServerManager():
     # created in cobbler. This is similar to function above (add_image),
     # but this call actually upload ISO image from client to the server.
     def upload_image(self):
-        # Detect whether logged in and whether admin
-        logged_in = False
-        is_admin = False
-        username = None
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            is_admin = True
-            logged_in = True
-            username = self._backend.current_user.username
-        elif self.sufficient_perms():
-            logged_in = True
-            username = self._backend.current_user.username
-
-        # if not logged in, don't give access
+        # Ensure permissions
+        _, username, is_admin, logged_in = self.determine_restrictions()
         if not logged_in:
             return 'Error: Insufficient permissions.'
 
@@ -3682,16 +3619,9 @@ class VncServerManager():
     # cluster, all servers in that cluster and associated roles are also
     # deleted.
     def delete_cluster(self):
-        # If admin, allow deletion of any cluster
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only deletion with write permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_cluster")
@@ -3735,16 +3665,9 @@ class VncServerManager():
 
     # API call to delete a server from the configuration.
     def delete_server(self):
-        # If admin, allow deletion of any server
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only deletion with write permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_server")
@@ -3802,7 +3725,8 @@ class VncServerManager():
     # API call to delete a dhcp subnet from the configuration.
     def delete_dhcp_subnet(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -3845,7 +3769,8 @@ class VncServerManager():
     # API call to delete a dhcp host from the configuration.
     def delete_dhcp_host(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         try:
@@ -3887,16 +3812,9 @@ class VncServerManager():
 
     # API Call to delete an image
     def delete_image(self):
-        # If admin, allow deletion of any server
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only deletion with write permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_image")
@@ -4027,7 +3945,8 @@ class VncServerManager():
     # API to delete a user
     def delete_user(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_user")
@@ -4082,7 +4001,8 @@ class VncServerManager():
     # API to delete a role
     def delete_role(self):
         # Ensure permissions
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "delete_role")
@@ -4142,8 +4062,9 @@ class VncServerManager():
     # API to create the server manager configuration DB from provided JSON
     # file.
     def create_server_mgr_config(self):
-        # If not admin, don't allow
-        if not self.sufficient_perms(role='administrator', fixed_role=True):
+        # Ensure permissions
+        _, _, is_admin, _ = self.determine_restrictions()
+        if not is_admin:
             return 'Error: Insufficient permissions.'
 
         entity = bottle.request.json
@@ -4297,16 +4218,9 @@ class VncServerManager():
     # If no server if provided, information about all the servers
     # in server manager configuration is returned.
     def reimage_server(self):
-        # If admin, allow anything
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only reimaging servers with write permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, allow nothing
-        else:
+        _, username, _, logged_in = self.determine_restrictions()
+        # Ensure permissions
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "reimage_server")
@@ -4930,16 +4844,9 @@ class VncServerManager():
 
     # API call to power-cycle the server (IMPI Interface)
     def restart_server(self):
-        # If admin, allow anything
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            username = None
-
-        # If other account, allow only reimaging servers with write permissions
-        elif self.sufficient_perms():
-            username = self._backend.current_user.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        _, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
         self._smgr_log.log(self._smgr_log.DEBUG, "restart_server")
@@ -6762,19 +6669,9 @@ class VncServerManager():
     # puppet manifest file for the server and adds it to site
     # manifest file.
     def provision_server(self, issu_flag = False):
-        # If admin, allow anything
-        if self.sufficient_perms(role='administrator', fixed_role=True):
-            user_obj = None
-            username = None
-
-        # If other account, allow only provisioning if have RW to server/cluster
-        # and R to images
-        elif self.sufficient_perms():
-            user_obj = self._backend.current_user
-            username = user_obj.username
-
-        # If not logged in, allow nothing
-        else:
+        # Ensure permissions
+        user_obj, username, _, logged_in = self.determine_restrictions()
+        if not logged_in:
             return 'Error: Insufficient permissions.'
 
 	provision_server_list = []
