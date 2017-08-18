@@ -131,6 +131,6 @@ class Reimage(Command):
                 self.smgr_ip, self.smgr_port, obj="server/reimage",
                 payload=payload, method="POST",
                 temp_username=self.app.temp_username,
-                temp_password=self.app.temp_username)
+                temp_password=self.app.temp_password)
             self.app.stdout.write("\n" + str(smgrutils.print_rest_response(resp)) + "\n")
         # End of reimage_server
