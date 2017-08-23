@@ -22,6 +22,7 @@ import subprocess
 import bottle
 from bottle import route, run, request, abort
 from beaker.middleware import SessionMiddleware
+from cork import AuthException
 from cork import Cork
 from cork.backends import SQLiteBackend
 import ConfigParser
@@ -5102,11 +5103,14 @@ class VncServerManager():
 
     # Logout
     def logout(self):
-        curr_user = self._backend.current_user
-        if curr_user:
+        try:
+            curr_user = self._backend.current_user
+            self._backend.logout()
             with open (self.ACCESS_LOG, "a") as access_log:
                 access_log.write('User %s logged out.\n' % curr_user.username)
-        self._backend.logout()
+            return 'Logout successful.'
+        except AuthException as e:
+            return 'You are not logged in.'
     # End of logout
 
     def log_trace(self):
