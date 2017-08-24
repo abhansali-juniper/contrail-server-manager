@@ -210,10 +210,35 @@ class TestRBAC(unittest.TestCase):
             result = self.vncServerManager.sufficient_perms(role='user')
             self.assertTrue(result)
 
-    # Test determine_restrictions when logged out
+    # Test determine_restrictions
     def testDetermineRestrictions(self):
-        user_obj, username, is_admin, logged_in = \
+        # When admin
+        with mock.patch('cork.Cork.current_user', new_callable=PropertyMock) \
+                as mock_current_user:
+            mock_current_user.return_value = \
+                self.vncServerManager._backend.user('admin')
+            user_obj, username, is_admin, logged_in = \
                 self.vncServerManager.determine_restrictions()
+            self.assertIsNone(user_obj)
+            self.assertIsNone(username)
+            self.assertTrue(is_admin)
+            self.assertTrue(logged_in)
+
+        # When regular user
+        with mock.patch('cork.Cork.current_user', new_callable=PropertyMock) \
+                as mock_current_user:
+            mock_current_user.return_value = \
+                self.vncServerManager._backend.user('user')
+            user_obj, username, is_admin, logged_in = \
+                self.vncServerManager.determine_restrictions()
+            self.assertEqual(user_obj.username, 'user')
+            self.assertEqual(username, 'user')
+            self.assertFalse(is_admin)
+            self.assertTrue(logged_in)
+
+        # When not logged in
+        user_obj, username, is_admin, logged_in = \
+            self.vncServerManager.determine_restrictions()
         self.assertIsNone(user_obj)
         self.assertIsNone(username)
         self.assertFalse(is_admin)
