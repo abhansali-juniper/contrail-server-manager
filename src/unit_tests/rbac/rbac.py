@@ -244,6 +244,23 @@ class TestRBAC(unittest.TestCase):
         self.assertFalse(is_admin)
         self.assertFalse(logged_in)
 
+    # Test current_user
+    def testCurrentUser(self):
+        # When logged in
+        with mock.patch('cork.Cork.current_user', new_callable=PropertyMock) \
+                as mock_current_user:
+            mock_current_user.return_value = \
+                self.vncServerManager._backend.user('user')
+            result = self.vncServerManager.get_current_user()
+            expected = dict()
+            expected['user'] = 'user'
+            self.assertEqual(result, expected)
+
+        # When not logged in
+        result = self.vncServerManager.get_current_user()
+        expected = dict()
+        self.assertEqual(result, expected)
+
     # Test login
     def testLogin(self):
         # User doesn't exist
@@ -296,6 +313,7 @@ def rbac_suite():
     suite = unittest.TestSuite()
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
+    suite.addTest(TestRBAC('testCurrentUser'))
     suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
     return suite
