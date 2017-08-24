@@ -61,10 +61,20 @@ class mock_VncServerManager(VncServerManager):
         self.ACCESS_LOG = access_log
 
         # Bottle routes
+        bottle.route('/logout', 'GET', self.inherited_logout)
+        bottle.route('/logout_success', 'GET',
+                     self.inherited_get_logout_success)
+
         bottle.route('/login', 'POST', self.inherited_login)
 
     def inherited_login(self):
         return VncServerManager.login(self)
+
+    def inherited_logout(self):
+        return VncServerManager.logout(self)
+
+    def inherited_get_logout_success(self):
+        return VncServerManager.get_logout_success(self)
 
 
 # Utility function to get a free port for running bottle server.
@@ -191,6 +201,23 @@ class TestRBAC(unittest.TestCase):
                                 headers={'content-type': 'application/json'})
         self.assertEqual(response.content, 'Login successful.')
 
+    # Test logout
+    def testLogout(self):
+        # When not logged in
+        response = requests.get('%slogout' % self.http)
+        self.assertEqual(response.content, 'You are not logged in.')
+
+        # When logged in
+        credentials = {}
+        credentials['username'] = 'admin'
+        credentials['password'] = 'c0ntrail123'
+        s = requests.Session()
+        r1 = s.post('%slogin' % self.http, data=json.dumps(credentials),
+               headers={'content-type': 'application/json'})
+        self.assertEqual(r1.content, 'Login successful.')
+        r2 = s.get('%slogout' % self.http)
+        self.assertEqual(r2.content, 'Logout successful.')
+
 
 # TestSuite for RBAC
 def rbac_suite():
@@ -199,4 +226,5 @@ def rbac_suite():
     suite.addTest(TestRBAC('testDetermineRestrictions'))
     suite.addTest(TestRBAC('testLoginInvalid'))
     suite.addTest(TestRBAC('testLoginValid'))
+    suite.addTest(TestRBAC('testLogout'))
     return suite

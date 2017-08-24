@@ -621,6 +621,7 @@ class VncServerManager():
         bottle.route('/login_success', 'GET', self.get_login_success)
         bottle.route('/login_failed', 'GET', self.get_login_failed)
         bottle.route('/logout', 'GET', self.logout)
+        bottle.route('/logout_success', 'GET', self.get_logout_success)
 
         #bottle.route('/logs/<filepath:path>', 'GET', self.get_defaults)
         @route('/logs/<filename:re:.*>')
@@ -5105,13 +5106,16 @@ class VncServerManager():
     def logout(self):
         try:
             curr_user = self._backend.current_user
-            self._backend.logout()
+            self._backend.logout(success_redirect='/logout_success')
             with open (self.ACCESS_LOG, "a") as access_log:
                 access_log.write('User %s logged out.\n' % curr_user.username)
-            return 'Logout successful.'
         except AuthException as e:
             return 'You are not logged in.'
     # End of logout
+
+    # Logout success page
+    def get_logout_success(self):
+        return 'Logout successful.'
 
     def log_trace(self):
         exc_type, exc_value, exc_traceback = sys.exc_info()
