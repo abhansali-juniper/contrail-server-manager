@@ -729,8 +729,12 @@ class VncServerManager():
                 if role != current_user.role:
                     return False
             else:
+                req_level = None
                 # Ensure level requirements
-                req_level = self._sqlite_backend.roles.get(role, None)
+                for (curr_role, level) in self._backend.list_roles():
+                    if role == curr_role:
+                        req_level = level
+                        break
                 if req_level is None:
                     return False
                 elif req_level > current_user.level:
