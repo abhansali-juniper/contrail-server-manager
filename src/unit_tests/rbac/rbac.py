@@ -11,6 +11,8 @@ from beaker.middleware import SessionMiddleware
 import bottle
 from cork import Cork
 from cork.backends import SQLiteBackend
+import mock
+from mock import PropertyMock
 import requests
 
 from server_mgr_db import ServerMgrDb as db
@@ -36,10 +38,26 @@ class mock_VncServerManager(VncServerManager):
         role_data = {'role': 'administrator', 'level': 100}
         self._serverDb.add_role(role_data=role_data)
 
+        # Create user role
+        role_data = {'role': 'user', 'level': 10}
+        self._serverDb.add_role(role_data=role_data)
+
         # Create admin user
         username = 'admin'
         password = 'c0ntrail123'
         role = 'administrator'
+        tstamp = str(datetime.datetime.utcnow())
+        h = self._backend._hash(username, password)
+        h = h.decode('ascii')
+        user_data = {'username': username, 'role': role, 'hash': h,
+                     'email_addr': '', 'desc': '', 'creation_date': tstamp,
+                     'last_login': tstamp}
+        self._serverDb.add_user(user_data=user_data)
+
+        # Create user user
+        username = 'user'
+        password = 'c0ntrail123'
+        role = 'user'
         tstamp = str(datetime.datetime.utcnow())
         h = self._backend._hash(username, password)
         h = h.decode('ascii')
@@ -61,11 +79,15 @@ class mock_VncServerManager(VncServerManager):
         self.ACCESS_LOG = access_log
 
         # Bottle routes
+        bottle.route('/user', 'GET', self.inherited_get_user)
         bottle.route('/logout', 'GET', self.inherited_logout)
         bottle.route('/logout_success', 'GET',
                      self.inherited_get_logout_success)
 
         bottle.route('/login', 'POST', self.inherited_login)
+
+    def inherited_get_user(self):
+        return VncServerManager.get_user(self)
 
     def inherited_login(self):
         return VncServerManager.login(self)
@@ -155,11 +177,38 @@ class TestRBAC(unittest.TestCase):
         except:
             pass
 
-    # Test sufficient_perms when logged out
+    # Test sufficient_perms
     def testSufficientPerms(self):
+        # When logged out
         result = self.vncServerManager.sufficient_perms()
         self.assertFalse(result)
-        pass
+
+        # When regular user
+        with mock.patch('cork.Cork.current_user', new_callable=PropertyMock) \
+                as mock_current_user:
+            mock_current_user.return_value = \
+                self.vncServerManager._backend.user('user')
+
+            # Test all code paths
+            result = self.vncServerManager.sufficient_perms(
+                username='not_user')
+            self.assertFalse(result)
+
+            result = self.vncServerManager.sufficient_perms(role='admin',
+                                                            fixed_role=True)
+            self.assertFalse(result)
+
+            result = self.vncServerManager.sufficient_perms(role='not_a_role')
+            self.assertFalse(result)
+
+            result = self.vncServerManager.sufficient_perms(role='admin')
+            self.assertFalse(result)
+
+            result = self.vncServerManager.sufficient_perms()
+            self.assertTrue(result)
+
+            result = self.vncServerManager.sufficient_perms(role='user')
+            self.assertTrue(result)
 
     # Test determine_restrictions when logged out
     def testDetermineRestrictions(self):
@@ -170,10 +219,10 @@ class TestRBAC(unittest.TestCase):
         self.assertFalse(is_admin)
         self.assertFalse(logged_in)
 
-    # Test login with invalid credentials
-    def testLoginInvalid(self):
+    # Test login
+    def testLogin(self):
         # User doesn't exist
-        credentials = {}
+        credentials = dict()
         credentials['username'] = 'wrong_username'
         credentials['password'] = 'wrong_password'
         response = requests.post('%slogin' % self.http,
@@ -182,7 +231,7 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(response.content, 'Login failed.')
 
         # Wrong password for user who exists
-        credentials = {}
+        credentials = dict()
         credentials['username'] = 'admin'
         credentials['password'] = 'wrong_password'
         response = requests.post('%slogin' % self.http,
@@ -190,15 +239,13 @@ class TestRBAC(unittest.TestCase):
                                  headers={'content-type': 'application/json'})
         self.assertEqual(response.content, 'Login failed.')
 
-    # Test login with valid credentials
-    def testLoginValid(self):
         # Default admin credentials
-        credentials = {}
+        credentials = dict()
         credentials['username'] = 'admin'
         credentials['password'] = 'c0ntrail123'
         response = requests.post('%slogin' % self.http,
-                                data=json.dumps(credentials),
-                                headers={'content-type': 'application/json'})
+                                 data=json.dumps(credentials),
+                                 headers={'content-type': 'application/json'})
         self.assertEqual(response.content, 'Login successful.')
 
     # Test logout
@@ -224,7 +271,6 @@ def rbac_suite():
     suite = unittest.TestSuite()
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
-    suite.addTest(TestRBAC('testLoginInvalid'))
-    suite.addTest(TestRBAC('testLoginValid'))
+    suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
     return suite
