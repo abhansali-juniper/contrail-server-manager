@@ -1,4 +1,3 @@
-import ast
 import datetime
 import errno
 import gevent
@@ -17,6 +16,7 @@ from mock import PropertyMock
 import requests
 
 from server_mgr_db import ServerMgrDb as db
+from server_mgr_err import ERR_OPR_ERROR
 from server_mgr_logger import ServerMgrlogger
 from server_mgr_logger import ServerMgrTransactionlogger as ServerMgrTlog
 from server_mgr_main import VncServerManager
@@ -94,6 +94,8 @@ class mock_VncServerManager(VncServerManager):
         bottle.route('/logout_success', 'GET',
                      self.inherited_get_logout_success)
 
+        bottle.route('/role', 'PUT', self.inherited_put_role)
+
         bottle.route('/login', 'POST', self.inherited_login)
 
     def inherited_get_user(self):
@@ -110,6 +112,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_get_logout_success(self):
         return VncServerManager.get_logout_success(self)
+
+    def inherited_put_role(self):
+        return VncServerManager.put_role(self)
 
 
 # Utility function to get a free port for running bottle server.
@@ -322,7 +327,7 @@ class TestRBAC(unittest.TestCase):
         user_dict = {"username": "user"}
         expected = dict()
         expected["user"] = [user_dict]
-        returned_dict = ast.literal_eval(r.content)
+        returned_dict = json.loads(r.content)
         self.assertEqual(returned_dict, expected)
 
         # When admin user
@@ -333,7 +338,7 @@ class TestRBAC(unittest.TestCase):
         expected = dict()
         expected_users = [user_dict, admin_dict]
         expected["user"] = expected_users
-        returned_dict = ast.literal_eval(r.content)
+        returned_dict = json.loads(r.content)
         returned_users = returned_dict.get("user", None)
         self.assertIsNotNone(returned_users)
         self.assertItemsEqual(expected_users, returned_users)
@@ -357,10 +362,82 @@ class TestRBAC(unittest.TestCase):
         expected = dict()
         expected_roles = [user_dict, admin_dict]
         expected["role"] = expected_roles
-        returned_dict = ast.literal_eval(r.content)
+        returned_dict = json.loads(r.content)
         returned_roles = returned_dict.get("role", None)
         self.assertIsNotNone(returned_roles)
         self.assertItemsEqual(expected_roles, returned_roles)
+
+    # Test put role
+    def testPutRole(self):
+        # When not logged in
+        data = dict()
+        data["role"] = "test_role"
+        data["level"] = "50"
+        r = requests.put('%srole' % self.http, data=json.dumps(data),
+                         headers={'content-type': 'application/json'})
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When regular user
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When admin user, but no json
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http)
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Parameters not specified"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, but json doesn't specify roles
+        data = dict()
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Parameters not specified"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, adding role
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['server_table']"
+        role_dict["level"] = 20
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = 0
+        expected["return_data"] = role_dict
+        expected["return_msg"] = "Role add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, modifying role
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["level"] = 30
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = 0
+        expected["return_data"] = role_dict
+        expected["return_msg"] = "Role add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
 
 
 # TestSuite for RBAC
@@ -373,4 +450,5 @@ def rbac_suite():
     suite.addTest(TestRBAC('testLogout'))
     suite.addTest(TestRBAC('testGetUser'))
     suite.addTest(TestRBAC('testGetRole'))
+    suite.addTest(TestRBAC('testPutRole'))
     return suite
