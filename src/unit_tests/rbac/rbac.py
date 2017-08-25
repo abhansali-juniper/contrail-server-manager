@@ -89,6 +89,7 @@ class mock_VncServerManager(VncServerManager):
 
         # Bottle routes
         bottle.route('/user', 'GET', self.inherited_get_user)
+        bottle.route('/role', 'GET', self.inherited_get_role)
         bottle.route('/logout', 'GET', self.inherited_logout)
         bottle.route('/logout_success', 'GET',
                      self.inherited_get_logout_success)
@@ -97,6 +98,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_get_user(self):
         return VncServerManager.get_user(self)
+
+    def inherited_get_role(self):
+        return VncServerManager.get_role(self)
 
     def inherited_login(self):
         return VncServerManager.login(self)
@@ -336,7 +340,6 @@ class TestRBAC(unittest.TestCase):
         returned_dict = ast.literal_eval(r.content)
         self.assertEqual(returned_dict, expected)
 
-
         # When admin user
         credentials = dict()
         credentials['username'] = 'admin'
@@ -355,13 +358,40 @@ class TestRBAC(unittest.TestCase):
         self.assertIsNotNone(returned_users)
         self.assertItemsEqual(expected_users, returned_users)
 
-        '''
-        self.assertTrue(type(returned_dict) is dict)
-        returned_users = returned_dict.get("user", None)
-        self.assertIsNotNone(returned_users)
-        self.assertIn(user_dict, returned_users)
-        self.assertIn(admin_dict, returned_users)
-        '''
+    # Test get_role
+    def testGetRole(self):
+        # When not logged in
+        response = requests.get('%srole' % self.http)
+        self.assertEqual(response.content, 'Error: Insufficient permissions.')
+
+        # When regular user
+        credentials = dict()
+        credentials['username'] = 'user'
+        credentials['password'] = 'c0ntrail123'
+        s = requests.Session()
+        s.post('%slogin' % self.http, data=json.dumps(credentials),
+               headers={'content-type': 'application/json'})
+        r = s.get('%srole' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When admin user
+        credentials = dict()
+        credentials['username'] = 'admin'
+        credentials['password'] = 'c0ntrail123'
+        s = requests.Session()
+        s.post('%slogin' % self.http, data=json.dumps(credentials),
+               headers={'content-type': 'application/json'})
+        r = s.get('%srole' % self.http)
+        user_dict = {"role": "user", "level": "10"}
+        admin_dict = {"role": "administrator", "level": "100"}
+        expected = dict()
+        expected_roles = [user_dict, admin_dict]
+        expected["role"] = expected_roles
+        returned_dict = ast.literal_eval(r.content)
+        returned_roles = returned_dict.get("role", None)
+        self.assertIsNotNone(returned_roles)
+        self.assertItemsEqual(expected_roles, returned_roles)
+
 
 # TestSuite for RBAC
 def rbac_suite():
@@ -372,4 +402,5 @@ def rbac_suite():
     suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
     suite.addTest(TestRBAC('testGetUser'))
+    suite.addTest(TestRBAC('testGetRole'))
     return suite
