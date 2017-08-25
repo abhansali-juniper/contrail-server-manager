@@ -1,3 +1,4 @@
+import ast
 import datetime
 import errno
 import gevent
@@ -16,12 +17,20 @@ from mock import PropertyMock
 import requests
 
 from server_mgr_db import ServerMgrDb as db
+from server_mgr_logger import ServerMgrlogger
+from server_mgr_logger import ServerMgrTransactionlogger as ServerMgrTlog
 from server_mgr_main import VncServerManager
 
 
 # Class to mock VncServerManager
 class mock_VncServerManager(VncServerManager):
     def __init__(self, db_file_name, access_log):
+        # Logger
+        self._smgr_log = ServerMgrlogger()
+
+        # Transaction logger
+        self._smgr_trans_log = ServerMgrTlog()
+
         # Connect to database
         self._serverDb = db(db_file_name)
 
@@ -307,6 +316,52 @@ class TestRBAC(unittest.TestCase):
         r2 = s.get('%slogout' % self.http)
         self.assertEqual(r2.content, 'Logout successful.')
 
+    # Test get_user
+    def testGetUser(self):
+        # When not logged in
+        response = requests.get('%suser' % self.http)
+        self.assertEqual(response.content, 'Error: Insufficient permissions.')
+
+        # When regular user
+        credentials = dict()
+        credentials['username'] = 'user'
+        credentials['password'] = 'c0ntrail123'
+        s = requests.Session()
+        s.post('%slogin' % self.http, data=json.dumps(credentials),
+                    headers={'content-type': 'application/json'})
+        r = s.get('%suser' % self.http)
+        user_dict = {"username": "user"}
+        expected = dict()
+        expected["user"] = [user_dict]
+        returned_dict = ast.literal_eval(r.content)
+        self.assertEqual(returned_dict, expected)
+
+
+        # When admin user
+        credentials = dict()
+        credentials['username'] = 'admin'
+        credentials['password'] = 'c0ntrail123'
+        s = requests.Session()
+        s.post('%slogin' % self.http, data=json.dumps(credentials),
+                headers={'content-type': 'application/json'})
+        r = s.get('%suser' % self.http)
+        user_dict = {"username": "user"}
+        admin_dict = {"username": "admin"}
+        expected = dict()
+        expected_users = [user_dict, admin_dict]
+        expected["user"] = expected_users
+        returned_dict = ast.literal_eval(r.content)
+        returned_users = returned_dict.get("user", None)
+        self.assertIsNotNone(returned_users)
+        self.assertItemsEqual(expected_users, returned_users)
+
+        '''
+        self.assertTrue(type(returned_dict) is dict)
+        returned_users = returned_dict.get("user", None)
+        self.assertIsNotNone(returned_users)
+        self.assertIn(user_dict, returned_users)
+        self.assertIn(admin_dict, returned_users)
+        '''
 
 # TestSuite for RBAC
 def rbac_suite():
@@ -316,4 +371,5 @@ def rbac_suite():
     suite.addTest(TestRBAC('testCurrentUser'))
     suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
+    suite.addTest(TestRBAC('testGetUser'))
     return suite
