@@ -146,6 +146,17 @@ def launch_server_manager(vnc_server_manager, host, port):
     bottle.run(app=pipe_start_app, host=host, port=port, quiet=True)
 
 
+# Function to log in to server manager
+def login(username, password, http):
+    credentials = dict()
+    credentials['username'] = username
+    credentials['password'] = password
+    s = requests.Session()
+    r = s.post('%slogin' % http, data=json.dumps(credentials),
+           headers={'content-type': 'application/json'})
+    return s, r
+
+
 # Class to test RBAC
 class TestRBAC(unittest.TestCase):
     DB_FILE_NAME = 'smgr_test_data.db'
@@ -277,31 +288,16 @@ class TestRBAC(unittest.TestCase):
     # Test login
     def testLogin(self):
         # User doesn't exist
-        credentials = dict()
-        credentials['username'] = 'wrong_username'
-        credentials['password'] = 'wrong_password'
-        response = requests.post('%slogin' % self.http,
-                                 data=json.dumps(credentials),
-                                 headers={'content-type': 'application/json'})
-        self.assertEqual(response.content, 'Login failed.')
+        _, r = login('wrong_username', 'wrong_password', self.http)
+        self.assertEqual(r.content, 'Login failed.')
 
         # Wrong password for user who exists
-        credentials = dict()
-        credentials['username'] = 'admin'
-        credentials['password'] = 'wrong_password'
-        response = requests.post('%slogin' % self.http,
-                                 data=json.dumps(credentials),
-                                 headers={'content-type': 'application/json'})
-        self.assertEqual(response.content, 'Login failed.')
+        _, r = login('admin', 'wrong_password', self.http)
+        self.assertEqual(r.content, 'Login failed.')
 
         # Default admin credentials
-        credentials = dict()
-        credentials['username'] = 'admin'
-        credentials['password'] = 'c0ntrail123'
-        response = requests.post('%slogin' % self.http,
-                                 data=json.dumps(credentials),
-                                 headers={'content-type': 'application/json'})
-        self.assertEqual(response.content, 'Login successful.')
+        _, r = login('admin', 'c0ntrail123', self.http)
+        self.assertEqual(r.content, 'Login successful.')
 
     # Test logout
     def testLogout(self):
@@ -310,29 +306,18 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(response.content, 'You are not logged in.')
 
         # When logged in
-        credentials = {}
-        credentials['username'] = 'admin'
-        credentials['password'] = 'c0ntrail123'
-        s = requests.Session()
-        r1 = s.post('%slogin' % self.http, data=json.dumps(credentials),
-               headers={'content-type': 'application/json'})
-        self.assertEqual(r1.content, 'Login successful.')
-        r2 = s.get('%slogout' % self.http)
-        self.assertEqual(r2.content, 'Logout successful.')
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.get('%slogout' % self.http)
+        self.assertEqual(r.content, 'Logout successful.')
 
     # Test get_user
     def testGetUser(self):
         # When not logged in
-        response = requests.get('%suser' % self.http)
-        self.assertEqual(response.content, 'Error: Insufficient permissions.')
+        r = requests.get('%suser' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
 
         # When regular user
-        credentials = dict()
-        credentials['username'] = 'user'
-        credentials['password'] = 'c0ntrail123'
-        s = requests.Session()
-        s.post('%slogin' % self.http, data=json.dumps(credentials),
-                    headers={'content-type': 'application/json'})
+        s, _ = login('user', 'c0ntrail123', self.http)
         r = s.get('%suser' % self.http)
         user_dict = {"username": "user"}
         expected = dict()
@@ -341,12 +326,7 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(returned_dict, expected)
 
         # When admin user
-        credentials = dict()
-        credentials['username'] = 'admin'
-        credentials['password'] = 'c0ntrail123'
-        s = requests.Session()
-        s.post('%slogin' % self.http, data=json.dumps(credentials),
-                headers={'content-type': 'application/json'})
+        s, _ = login('admin', 'c0ntrail123', self.http)
         r = s.get('%suser' % self.http)
         user_dict = {"username": "user"}
         admin_dict = {"username": "admin"}
@@ -365,22 +345,12 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(response.content, 'Error: Insufficient permissions.')
 
         # When regular user
-        credentials = dict()
-        credentials['username'] = 'user'
-        credentials['password'] = 'c0ntrail123'
-        s = requests.Session()
-        s.post('%slogin' % self.http, data=json.dumps(credentials),
-               headers={'content-type': 'application/json'})
+        s, _ = login('user', 'c0ntrail123', self.http)
         r = s.get('%srole' % self.http)
         self.assertEqual(r.content, 'Error: Insufficient permissions.')
 
         # When admin user
-        credentials = dict()
-        credentials['username'] = 'admin'
-        credentials['password'] = 'c0ntrail123'
-        s = requests.Session()
-        s.post('%slogin' % self.http, data=json.dumps(credentials),
-               headers={'content-type': 'application/json'})
+        s, _ = login('admin', 'c0ntrail123', self.http)
         r = s.get('%srole' % self.http)
         user_dict = {"role": "user", "level": "10"}
         admin_dict = {"role": "administrator", "level": "100"}
