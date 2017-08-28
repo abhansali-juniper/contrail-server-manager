@@ -94,6 +94,7 @@ class mock_VncServerManager(VncServerManager):
         bottle.route('/logout_success', 'GET',
                      self.inherited_get_logout_success)
 
+        bottle.route('/user', 'PUT', self.inherited_put_user)
         bottle.route('/role', 'PUT', self.inherited_put_role)
 
         bottle.route('/role', 'DELETE', self.inherited_delete_role)
@@ -114,6 +115,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_get_logout_success(self):
         return VncServerManager.get_logout_success(self)
+
+    def inherited_put_user(self):
+        return VncServerManager.put_user(self)
 
     def inherited_put_role(self):
         return VncServerManager.put_role(self)
@@ -372,6 +376,154 @@ class TestRBAC(unittest.TestCase):
         self.assertIsNotNone(returned_roles)
         self.assertItemsEqual(expected_roles, returned_roles)
 
+    # Test put user
+    def testPutUser(self):
+        # When not logged in
+        data = dict()
+        data["username"] = "test_user"
+        r = requests.put('%suser' % self.http, data=json.dumps(data),
+                         headers={'content-type': 'application/json'})
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When regular user, and no json
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http)
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Parameters not specified"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When regular user, but json doesn't specify users
+        data = dict()
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Parameters not specified"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When regular user, but no username passed
+        data = dict()
+        data["user"] = [{}]
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "username is a required parameter."
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When regular user, but trying to modify another user
+        user_dict = dict()
+        user_dict["username"] = "admin"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When regular user, but trying to modify own role
+        user_dict = dict()
+        user_dict["username"] = "user"
+        user_dict["role"] = "adminstrator"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Cannot change own role."
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, but moving user to a role which doesn't exist
+        user_dict = dict()
+        user_dict["username"] = "user"
+        user_dict["role"] = "missing_role"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Role does not exist."
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When regular user, and modifying self
+        user_dict = dict()
+        user_dict["username"] = "user"
+        user_dict["password"] = "new_password"
+        user_dict["email"] = "new_email"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = 0
+        expected["return_data"] = user_dict
+        expected["return_msg"] = "User add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When regular user, but adding user
+        user_dict = dict()
+        user_dict["username"] = "new_user"
+        user_dict["password"] = "c0ntrail123"
+        user_dict["role"] = "administrator"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When admin user and adding user, but forgot to specify role
+        user_dict = dict()
+        user_dict["username"] = "new_user"
+        user_dict["password"] = "c0ntrail123"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "role and password are required parameters."
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user and adding user
+        user_dict = dict()
+        user_dict["username"] = "new_user"
+        user_dict["password"] = "c0ntrail123"
+        user_dict["role"] = "user"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = 0
+        expected["return_data"] = user_dict
+        expected["return_msg"] = "User add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
     # Test put role
     def testPutRole(self):
         # When not logged in
@@ -515,6 +667,7 @@ def rbac_suite():
     suite.addTest(TestRBAC('testLogout'))
     suite.addTest(TestRBAC('testGetUser'))
     suite.addTest(TestRBAC('testGetRole'))
+    suite.addTest(TestRBAC('testPutUser'))
     suite.addTest(TestRBAC('testPutRole'))
     suite.addTest(TestRBAC('testDeleteRole'))
     return suite
