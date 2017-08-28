@@ -2378,28 +2378,25 @@ class VncServerManager():
 
         # Get passed in params
         entity = bottle.request.json
-        if not entity:
-            msg = 'Parameters not specified'
-            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-            abort(404, resp_msg)
-        entity = entity.get("user", None)
-        if not entity:
-            msg = 'Parameters not specified'
-            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-            abort(404, resp_msg)
-        entity = entity[0]
-        username = entity.get("username", None)
-        password = entity.get("password", None)
-        role = entity.get("role", None)
-        desc = entity.get("desc", None)
-        email = entity.get("email", None)
-
         try:
+            if not entity:
+                msg = 'Parameters not specified'
+                self.log_and_raise_exception(msg)
+            entity = entity.get("user", None)
+            if not entity:
+                msg = 'Parameters not specified'
+                self.log_and_raise_exception(msg)
+            entity = entity[0]
+            username = entity.get("username", None)
+            password = entity.get("password", None)
+            role = entity.get("role", None)
+            desc = entity.get("desc", None)
+            email = entity.get("email", None)
+
             # username is required
             if not username:
                 msg = 'username is a required parameter.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
+                self.log_and_raise_exception(msg)
 
             # Users can only modify self
             if not is_admin and user_logged_in != username:
@@ -2408,14 +2405,12 @@ class VncServerManager():
             # Do not allow users to change own role
             if not is_admin and role:
                 msg = 'Cannot change own role.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
+                self.log_and_raise_exception(msg)
 
             # Ensure role exists
             if role and not self._serverDb.get_role(match_dict={'role': role}):
                 msg = 'Role does not exist.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
+                self.log_and_raise_exception(msg)
 
             # Modify user
             if self._serverDb.get_user(match_dict={'username': username}):
@@ -2433,9 +2428,7 @@ class VncServerManager():
                 # role, password are required
                 if not (role and password):
                     msg = 'role and password are required parameters.'
-                    resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR,
-                                                         None)
-                    abort(404, resp_msg)
+                    self.log_and_raise_exception(msg)
 
                 # Add to db
                 self._backend.create_user(username=username, role=role,
@@ -2445,6 +2438,7 @@ class VncServerManager():
 
         # Catch exceptions
         except ServerMgrException as e:
+            self.log_trace()
             self._smgr_trans_log.log(bottle.request,
                                      self._smgr_trans_log.PUT_SMGR_CFG_USER, False)
             resp_msg = self.form_operartion_data(e.msg, e.ret_code, None)
