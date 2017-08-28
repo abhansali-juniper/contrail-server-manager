@@ -97,6 +97,7 @@ class mock_VncServerManager(VncServerManager):
         bottle.route('/user', 'PUT', self.inherited_put_user)
         bottle.route('/role', 'PUT', self.inherited_put_role)
 
+        bottle.route('/user', 'DELETE', self.inherited_delete_user)
         bottle.route('/role', 'DELETE', self.inherited_delete_role)
 
         bottle.route('/login', 'POST', self.inherited_login)
@@ -121,6 +122,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_put_role(self):
         return VncServerManager.put_role(self)
+
+    def inherited_delete_user(self):
+        return VncServerManager.delete_user(self)
 
     def inherited_delete_role(self):
         return VncServerManager.delete_role(self)
@@ -596,6 +600,39 @@ class TestRBAC(unittest.TestCase):
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 
+    # Test delete user
+    def testDeleteUser(self):
+        # When not logged in
+        r = requests.delete('%suser?username=user' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When regular user
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.delete('%suser?username=user' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When admin user, but user does not exist
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.delete('%suser?username=missing_user' % self.http)
+        user_dict = dict()
+        user_dict['username'] = 'missing_user'
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "User %s doesn't exist" % user_dict
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, remove user successfully
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.delete('%suser?username=user' % self.http)
+        expected = dict()
+        expected["return_code"] = 0
+        expected["return_data"] = None
+        expected["return_msg"] = "User Deleted"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
     # Test delete role
     def testDeleteRole(self):
         # When not logged in
@@ -669,5 +706,6 @@ def rbac_suite():
     suite.addTest(TestRBAC('testGetRole'))
     suite.addTest(TestRBAC('testPutUser'))
     suite.addTest(TestRBAC('testPutRole'))
+    suite.addTest(TestRBAC('testDeleteUser'))
     suite.addTest(TestRBAC('testDeleteRole'))
     return suite
