@@ -96,6 +96,8 @@ class mock_VncServerManager(VncServerManager):
 
         bottle.route('/role', 'PUT', self.inherited_put_role)
 
+        bottle.route('/role', 'DELETE', self.inherited_delete_role)
+
         bottle.route('/login', 'POST', self.inherited_login)
 
     def inherited_get_user(self):
@@ -115,6 +117,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_put_role(self):
         return VncServerManager.put_role(self)
+
+    def inherited_delete_role(self):
+        return VncServerManager.delete_role(self)
 
 
 # Utility function to get a free port for running bottle server.
@@ -439,6 +444,66 @@ class TestRBAC(unittest.TestCase):
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 
+    # Test delete role
+    def testDeleteRole(self):
+        # When not logged in
+        r = requests.delete('%srole?role=user' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When regular user
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.delete('%srole?role=user' % self.http)
+        self.assertEqual(r.content, 'Error: Insufficient permissions.')
+
+        # When admin user, but role does not exist
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.delete('%srole?role=missing_role' % self.http)
+        role_dict = dict()
+        role_dict['role'] = 'missing_role'
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Role %s doesn't exist" % role_dict
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, but user is currently using this role
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.delete('%srole?role=user' % self.http)
+        role_dict = dict()
+        role_dict['role'] = 'user'
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Users currently assigned role %s" % role_dict
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user and no user is using this role
+        # Create role first
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['server_table']"
+        role_dict["level"] = 20
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+
+        # Try to delete role
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.delete('%srole?role=user' % self.http)
+        role_dict = dict()
+        role_dict['role'] = 'user'
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Users currently assigned role %s" % role_dict
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
 
 # TestSuite for RBAC
 def rbac_suite():
@@ -451,4 +516,5 @@ def rbac_suite():
     suite.addTest(TestRBAC('testGetUser'))
     suite.addTest(TestRBAC('testGetRole'))
     suite.addTest(TestRBAC('testPutRole'))
+    suite.addTest(TestRBAC('testDeleteRole'))
     return suite
