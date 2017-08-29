@@ -2457,27 +2457,24 @@ class VncServerManager():
 
         # Get passed in params
         entity = bottle.request.json
-        if not entity:
-            msg = 'Parameters not specified'
-            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-            abort(404, resp_msg)
-        entity = entity.get("role", None)
-        if not entity:
-            msg = 'Parameters not specified'
-            resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-            abort(404, resp_msg)
-        entity = entity[0]
-        role = entity.get("role", None)
-        R = entity.get("R", None)
-        RW = entity.get("RW", None)
-        level = entity.get("level", None)
-
         try:
+            if not entity:
+                msg = 'Parameters not specified'
+                self.log_and_raise_exception(msg)
+            entity = entity.get("role", None)
+            if not entity:
+                msg = 'Parameters not specified'
+                self.log_and_raise_exception(msg)
+            entity = entity[0]
+            role = entity.get("role", None)
+            R = entity.get("R", None)
+            RW = entity.get("RW", None)
+            level = entity.get("level", None)
+
             # role is required
             if not role:
                 msg = 'role is a required parameter.'
-                resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR, None)
-                abort(404, resp_msg)
+                self.log_and_raise_exception(msg)
 
             # Build role data
             role_data = {}
@@ -2499,9 +2496,7 @@ class VncServerManager():
                 # level is required
                 if not level:
                     msg = 'level is a required parameter.'
-                    resp_msg = self.form_operartion_data(msg, ERR_OPR_ERROR,
-                                                         None)
-                    abort(404, resp_msg)
+                    self.log_and_raise_exception(msg)
 
                 # Add to db
                 self._serverDb.add_role(role_data)

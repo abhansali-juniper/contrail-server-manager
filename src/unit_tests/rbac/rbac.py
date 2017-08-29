@@ -654,6 +654,7 @@ class TestRBAC(unittest.TestCase):
 
         # When admin user, but json doesn't specify roles
         data = dict()
+        data["bad_key"] = "bad_value"
         s, _ = login('admin', 'c0ntrail123', self.http)
         r = s.put('%srole' % self.http, data=json.dumps(data),
                   headers={'content-type': 'application/json'})
@@ -661,6 +662,40 @@ class TestRBAC(unittest.TestCase):
         expected["return_code"] = ERR_OPR_ERROR
         expected["return_data"] = None
         expected["return_msg"] = "Parameters not specified"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, but role parameter is missing
+        data = dict()
+        role_dict = dict()
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['server_table']"
+        role_dict["level"] = 20
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "role is a required parameter."
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, but level parameter is missing
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['server_table']"
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "level is a required parameter."
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 
@@ -695,6 +730,20 @@ class TestRBAC(unittest.TestCase):
         expected["return_code"] = 0
         expected["return_data"] = role_dict
         expected["return_msg"] = "Role add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, raise Exception
+        data = dict()
+        data["role"] = "invalid"
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_GENERAL_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = \
+            "AttributeError(\"'str' object has no attribute 'get'\",)"
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 
