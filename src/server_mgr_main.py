@@ -3942,17 +3942,13 @@ class VncServerManager():
             if ret_data["status"] == 0:
                 user_dict = {}
                 user_dict[ret_data["match_key"]] = ret_data["match_value"]
-            else:
-                msg = "Validation failed"
-                self.log_and_raise_exception(msg)
+
             users = self._serverDb.get_user(user_dict, detail=True)
 
             # Stop if user does not exist
             if not users:
                 msg = "User %s doesn't exist" % user_dict
                 self.log_and_raise_exception(msg)
-                self._smgr_log.log(self._smgr_log.ERROR,
-                                   msg)
             user = users[0]
             username = user['username']
 

@@ -780,6 +780,21 @@ class TestRBAC(unittest.TestCase):
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 
+        # When admin user, raise Exception
+        with mock.patch(
+                'server_mgr_main.VncServerManager.validate_smgr_request',
+                new_callable=PropertyMock) as mock_validate_req:
+            mock_validate_req.return_value = None
+            s, _ = login('admin', 'c0ntrail123', self.http)
+            r = s.delete('%suser?username=user' % self.http)
+            expected = dict()
+            expected["return_code"] = ERR_GENERAL_ERROR
+            expected["return_data"] = None
+            expected["return_msg"] = \
+                "TypeError(\"'NoneType' object is not callable\",)"
+            returned = json.loads(r.content)
+            self.assertEqual(returned, expected)
+
     # Test delete role
     def testDeleteRole(self):
         # When not logged in
