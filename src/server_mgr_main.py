@@ -1891,9 +1891,6 @@ class VncServerManager():
             abort(404, resp_msg)
         self._smgr_trans_log.log(bottle.request,
                                  self._smgr_trans_log.GET_SMGR_CFG_USER)
-        for user in users:
-            if user.get("parameters", None) is not None:
-                user['parameters'] = eval(user['parameters'])
         return {"user": users}
     # End of get_user
 

@@ -18,6 +18,7 @@ import requests
 sys.path.append('/opt/contrail/server_manager')
 
 from server_mgr_db import ServerMgrDb as db
+from server_mgr_err import ERR_GENERAL_ERROR
 from server_mgr_err import ERR_OPR_ERROR
 from server_mgr_logger import ServerMgrlogger
 from server_mgr_logger import ServerMgrTransactionlogger as ServerMgrTlog
@@ -351,6 +352,18 @@ class TestRBAC(unittest.TestCase):
         returned_dict = json.loads(r.content)
         self.assertEqual(returned_dict, expected)
 
+        # When admin user and selecting specific user
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.get('%suser?username=user' % self.http)
+        user_dict = {"username": "user"}
+        expected = dict()
+        expected_users = [user_dict]
+        expected["user"] = expected_users
+        returned_dict = json.loads(r.content)
+        returned_users = returned_dict.get("user", None)
+        self.assertIsNotNone(returned_users)
+        self.assertItemsEqual(expected_users, returned_users)
+
         # When admin user
         s, _ = login('admin', 'c0ntrail123', self.http)
         r = s.get('%suser' % self.http)
@@ -363,6 +376,31 @@ class TestRBAC(unittest.TestCase):
         returned_users = returned_dict.get("user", None)
         self.assertIsNotNone(returned_users)
         self.assertItemsEqual(expected_users, returned_users)
+
+        # When admin user, raise ServerMgrException
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.get('%suser?bad_key=bad_value' % self.http)
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Match key not present"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, raise Exception
+        with mock.patch(
+                'server_mgr_main.VncServerManager.validate_smgr_request',
+                new_callable=PropertyMock) as mock_validate_req:
+            mock_validate_req.return_value = None
+            s, _ = login('admin', 'c0ntrail123', self.http)
+            r = s.get('%suser' % self.http)
+            expected = dict()
+            expected["return_code"] = ERR_GENERAL_ERROR
+            expected["return_data"] = None
+            expected["return_msg"] = \
+                "TypeError(\"'NoneType' object is not callable\",)"
+            returned = json.loads(r.content)
+            self.assertEqual(returned, expected)
 
     # Test get_role
     def testGetRole(self):
