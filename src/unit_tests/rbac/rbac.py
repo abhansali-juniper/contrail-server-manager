@@ -484,6 +484,7 @@ class TestRBAC(unittest.TestCase):
 
         # When regular user, but json doesn't specify users
         data = dict()
+        data["wrong_key"] = "wrong_value"
         s, _ = login('user', 'c0ntrail123', self.http)
         r = s.put('%suser' % self.http, data=json.dumps(data),
                   headers={'content-type': 'application/json'})
@@ -608,6 +609,20 @@ class TestRBAC(unittest.TestCase):
         expected["return_code"] = 0
         expected["return_data"] = user_dict
         expected["return_msg"] = "User add/modify success"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, raise Exception
+        data = dict()
+        data["user"] = "invalid"
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        expected = dict()
+        expected["return_code"] = ERR_GENERAL_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = \
+            "AttributeError(\"'str' object has no attribute 'get'\",)"
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
 

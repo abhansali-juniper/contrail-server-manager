@@ -2415,10 +2415,6 @@ class VncServerManager():
 
             # Add user
             else:
-                # Only administrators may add users
-                if not is_admin:
-                    return 'Error: Insufficient permissions.'
-
                 # role, password are required
                 if not (role and password):
                     msg = 'role and password are required parameters.'
