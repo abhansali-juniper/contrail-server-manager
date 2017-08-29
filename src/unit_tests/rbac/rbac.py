@@ -15,6 +15,8 @@ import mock
 from mock import PropertyMock
 import requests
 
+sys.path.append('/opt/contrail/server_manager')
+
 from server_mgr_db import ServerMgrDb as db
 from server_mgr_err import ERR_OPR_ERROR
 from server_mgr_logger import ServerMgrlogger
@@ -709,3 +711,8 @@ def rbac_suite():
     suite.addTest(TestRBAC('testDeleteUser'))
     suite.addTest(TestRBAC('testDeleteRole'))
     return suite
+
+if __name__ == '__main__':
+    mySuite = rbac_suite()
+    runner = unittest.TextTestRunner()
+    runner.run(mySuite)
