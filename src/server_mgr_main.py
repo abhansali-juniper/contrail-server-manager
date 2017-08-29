@@ -1931,9 +1931,6 @@ class VncServerManager():
             abort(404, resp_msg)
         self._smgr_trans_log.log(bottle.request,
                                  self._smgr_trans_log.GET_SMGR_CFG_ROLE)
-        for role in roles:
-            if role.get("parameters", None) is not None:
-                role['parameters'] = eval(role['parameters'])
         return {"role": roles}
 
     # API Call to list images

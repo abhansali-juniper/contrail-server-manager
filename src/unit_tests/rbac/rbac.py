@@ -426,6 +426,43 @@ class TestRBAC(unittest.TestCase):
         self.assertIsNotNone(returned_roles)
         self.assertItemsEqual(expected_roles, returned_roles)
 
+        # When admin user, and selecting specific role
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.get('%srole?role=user' % self.http)
+        user_dict = {"role": "user", "level": "10"}
+        expected = dict()
+        expected_roles = [user_dict]
+        expected["role"] = expected_roles
+        returned_dict = json.loads(r.content)
+        returned_roles = returned_dict.get("role", None)
+        self.assertIsNotNone(returned_roles)
+        self.assertItemsEqual(expected_roles, returned_roles)
+
+        # When admin user, raise ServerMgrException
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        r = s.get('%srole?bad_key=bad_value' % self.http)
+        expected = dict()
+        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_data"] = None
+        expected["return_msg"] = "Match key not present"
+        returned = json.loads(r.content)
+        self.assertEqual(returned, expected)
+
+        # When admin user, raise Exception
+        with mock.patch(
+                'server_mgr_main.VncServerManager.validate_smgr_request',
+                new_callable=PropertyMock) as mock_validate_req:
+            mock_validate_req.return_value = None
+            s, _ = login('admin', 'c0ntrail123', self.http)
+            r = s.get('%srole' % self.http)
+            expected = dict()
+            expected["return_code"] = ERR_GENERAL_ERROR
+            expected["return_data"] = None
+            expected["return_msg"] = \
+                "TypeError(\"'NoneType' object is not callable\",)"
+            returned = json.loads(r.content)
+            self.assertEqual(returned, expected)
+
     # Test put user
     def testPutUser(self):
         # When not logged in
