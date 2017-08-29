@@ -5104,9 +5104,9 @@ class VncServerManager():
     def logout(self):
         try:
             curr_user = self._backend.current_user
-            self._backend.logout(success_redirect='/logout_success')
             with open (self.ACCESS_LOG, "a") as access_log:
-                access_log.write('User %s logged out.\n' % curr_user.username)
+                access_log.write('User %s logging out.\n' % curr_user.username)
+            self._backend.logout(success_redirect='/logout_success')
         except AuthException as e:
             return 'You are not logged in.'
     # End of logout
