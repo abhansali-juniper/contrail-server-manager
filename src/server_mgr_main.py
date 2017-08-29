@@ -3994,16 +3994,12 @@ class VncServerManager():
             if ret_data["status"] == 0:
                 role_dict = {}
                 role_dict[ret_data["match_key"]] = ret_data["match_value"]
-            else:
-                msg = "Validation failed"
-                self.log_and_raise_exception(msg)
             roles = self._serverDb.get_role(role_dict, detail=True)
 
             # Stop if role does not exist
             if not roles:
                 msg = "Role %s doesn't exist" % role_dict
                 self.log_and_raise_exception(msg)
-                self._smgr_log.log(self._smgr_log.ERROR, msg)
 
             # Stop if there are users assigned this role
             role = roles[0]['role']
@@ -4011,7 +4007,6 @@ class VncServerManager():
             if users:
                 msg = "Users currently assigned role %s" % role_dict
                 self.log_and_raise_exception(msg)
-                self._smgr_log.log(self._smgr_log.ERROR, msg)
 
             # Remove from db
             self._serverDb.delete_role(role_dict)

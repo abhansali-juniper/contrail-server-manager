@@ -845,15 +845,28 @@ class TestRBAC(unittest.TestCase):
 
         # Try to delete role
         s, _ = login('admin', 'c0ntrail123', self.http)
-        r = s.delete('%srole?role=user' % self.http)
-        role_dict = dict()
-        role_dict['role'] = 'user'
+        r = s.delete('%srole?role=temp_role' % self.http)
         expected = dict()
-        expected["return_code"] = ERR_OPR_ERROR
+        expected["return_code"] = 0
         expected["return_data"] = None
-        expected["return_msg"] = "Users currently assigned role %s" % role_dict
+        expected["return_msg"] = "Role Deleted"
         returned = json.loads(r.content)
         self.assertEqual(returned, expected)
+
+        # When admin user, raise Exception
+        with mock.patch(
+                'server_mgr_main.VncServerManager.validate_smgr_request',
+                new_callable=PropertyMock) as mock_validate_req:
+            mock_validate_req.return_value = None
+            s, _ = login('admin', 'c0ntrail123', self.http)
+            r = s.delete('%srole?role=user' % self.http)
+            expected = dict()
+            expected["return_code"] = ERR_GENERAL_ERROR
+            expected["return_data"] = None
+            expected["return_msg"] = \
+                "TypeError(\"'NoneType' object is not callable\",)"
+            returned = json.loads(r.content)
+            self.assertEqual(returned, expected)
 
 
 # TestSuite for RBAC
