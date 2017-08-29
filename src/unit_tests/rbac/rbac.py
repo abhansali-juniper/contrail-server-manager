@@ -167,11 +167,12 @@ def launch_server_manager(vnc_server_manager, host, port):
 
 
 # Function to log in to server manager
-def login(username, password, http):
+def login(username, password, http, s=None):
     credentials = dict()
     credentials['username'] = username
     credentials['password'] = password
-    s = requests.Session()
+    if not s:
+        s = requests.Session()
     r = s.post('%slogin' % http, data=json.dumps(credentials),
            headers={'content-type': 'application/json'})
     return s, r
@@ -238,14 +239,15 @@ class TestRBAC(unittest.TestCase):
                 username='not_user')
             self.assertFalse(result)
 
-            result = self.vncServerManager.sufficient_perms(role='admin',
-                                                            fixed_role=True)
+            result = self.vncServerManager.sufficient_perms(
+                role='administrator', fixed_role=True)
             self.assertFalse(result)
 
             result = self.vncServerManager.sufficient_perms(role='not_a_role')
             self.assertFalse(result)
 
-            result = self.vncServerManager.sufficient_perms(role='admin')
+            result = self.vncServerManager.sufficient_perms(
+                role='administrator')
             self.assertFalse(result)
 
             result = self.vncServerManager.sufficient_perms()
@@ -316,8 +318,12 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(r.content, 'Login failed.')
 
         # Default admin credentials
-        _, r = login('admin', 'c0ntrail123', self.http)
+        s, r = login('admin', 'c0ntrail123', self.http)
         self.assertEqual(r.content, 'Login successful.')
+
+        # Switch users with incorrect credentials
+        _, r = login('user', 'wrong_password', self.http, s=s)
+        self.assertEqual(r.content, 'Login failed.')
 
     # Test logout
     def testLogout(self):
