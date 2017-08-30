@@ -69,9 +69,7 @@ user_fields = {
     "category": "",
     "type": "",
     "version": "",
-    "path": "",
-    "parameters": """{
-                }"""
+    "path": ""
 }
 
 role_fields = {
@@ -82,9 +80,7 @@ role_fields = {
     "category": "",
     "type": "",
     "version": "",
-    "path": "",
-    "parameters": """{
-                }"""
+    "path": ""
 }
 
 fru_fields = {
