@@ -802,6 +802,10 @@ class ServerMgrDb:
             if not role_data.get('RW', None):
                 role_data['RW'] = '[]'
 
+            # Replace double quotes with single quotes
+            role_data['R'] = role_data['R'].replace('"', "'")
+            role_data['RW'] = role_data['RW'].replace('"', "'")
+
             # Add to db
             self._add_row(role_table, role_data)
         except Exception as e:

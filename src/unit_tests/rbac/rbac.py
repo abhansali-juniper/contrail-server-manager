@@ -51,7 +51,8 @@ class mock_VncServerManager(VncServerManager):
         self._serverDb.add_role(role_data=role_data)
 
         # Create user role
-        role_data = {'role': 'user', 'level': 10}
+        role_data = {'role': 'user', 'RW': '["cluster_table", "server_table"]',
+                     'level': 10}
         self._serverDb.add_role(role_data=role_data)
 
         # Create admin user
@@ -222,6 +223,33 @@ class TestRBAC(unittest.TestCase):
             os.remove(TestRBAC.ACCESS_LOG)
         except:
             pass
+
+    # Test has_permission
+    def testHasPermission(self):
+        # Test parameter checking
+        result = self.vncServerManager._serverDb.has_permission(None, None,
+                                                                None)
+        self.assertFalse(result)
+        user_obj = self.vncServerManager._backend.user('admin')
+        table_name = 'bad_name'
+        perms = 'RW'
+        result = self.vncServerManager._serverDb.has_permission(
+            user_obj=user_obj, table_name=table_name, perms=perms)
+        self.assertFalse(result)
+        user_obj = self.vncServerManager._backend.user('user')
+        table_name = 'server_table'
+        perms = 'bad_perms'
+        result = self.vncServerManager._serverDb.has_permission(
+            user_obj=user_obj, table_name=table_name, perms=perms)
+        self.assertFalse(result)
+
+        # Test user does have permission
+        user_obj = self.vncServerManager._backend.user('user')
+        table_name = 'server_table'
+        perms = 'RW'
+        result = self.vncServerManager._serverDb.has_permission(
+            user_obj=user_obj, table_name=table_name, perms=perms)
+        self.assertTrue(result)
 
     # Test sufficient_perms
     def testSufficientPerms(self):
@@ -872,6 +900,7 @@ class TestRBAC(unittest.TestCase):
 # TestSuite for RBAC
 def rbac_suite():
     suite = unittest.TestSuite()
+    suite.addTest(TestRBAC('testHasPermission'))
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
     suite.addTest(TestRBAC('testCurrentUser'))
