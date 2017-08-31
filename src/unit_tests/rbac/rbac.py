@@ -94,6 +94,7 @@ class mock_VncServerManager(VncServerManager):
         # Bottle routes
         bottle.route('/user', 'GET', self.inherited_get_user)
         bottle.route('/role', 'GET', self.inherited_get_role)
+        bottle.route('/current_user', 'GET', self.inherited_get_current_user)
         bottle.route('/logout', 'GET', self.inherited_logout)
         bottle.route('/logout_success', 'GET',
                      self.inherited_get_logout_success)
@@ -111,6 +112,9 @@ class mock_VncServerManager(VncServerManager):
 
     def inherited_get_role(self):
         return VncServerManager.get_role(self)
+
+    def inherited_get_current_user(self):
+        return VncServerManager.get_current_user(self)
 
     def inherited_login(self):
         return VncServerManager.login(self)
@@ -386,22 +390,67 @@ class TestRBAC(unittest.TestCase):
         self.assertFalse(is_admin)
         self.assertFalse(logged_in)
 
+    # Test add_cluster
+    def testAddCluster(self):
+        # When don't have correct permissions
+        # First create user without permissions
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['server_table']"
+        role_dict["level"] = 20
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        s.put('%srole' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+        user_dict = dict()
+        user_dict["username"] = "temp_user"
+        user_dict["password"] = "c0ntrail123"
+        user_dict["role"] = "temp_role"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        s.put('%suser' % self.http, data=json.dumps(data),
+                  headers={'content-type': 'application/json'})
+
+        # Now attempt to add a dummy cluster without permissions
+        cluster_data = dict()
+        cluster_data['id'] = 'dummy_cluster'
+        result = self.vncServerManager._serverDb.add_cluster(
+            cluster_data=cluster_data,
+            user_obj=self.vncServerManager._backend.user('temp_user'))
+        self.assertEqual(result, -1)
+
+        # When have correct permissions
+        cluster_data = dict()
+        cluster_data['id'] = 'dummy_cluster'
+        self.vncServerManager._serverDb.add_cluster(
+            cluster_data=cluster_data,
+            user_obj=self.vncServerManager._backend.user('user'))
+        result = self.vncServerManager._serverDb.get_cluster(
+            match_dict={'id': 'dummy_cluster'}, field_list=["R", "RW"])
+        self.assertEqual(len(result), 1)
+        returned_data = result[0]
+        expected_perms = "['user']"
+        self.assertEqual(returned_data['R'], expected_perms)
+        self.assertEqual(returned_data['RW'], expected_perms)
+
     # Test current_user
     def testCurrentUser(self):
         # When logged in
-        with mock.patch('cork.Cork.current_user', new_callable=PropertyMock) \
-                as mock_current_user:
-            mock_current_user.return_value = \
-                self.vncServerManager._backend.user('user')
-            result = self.vncServerManager.get_current_user()
-            expected = dict()
-            expected['user'] = 'user'
-            self.assertEqual(result, expected)
+        s, _ = login('user', 'c0ntrail123', self.http)
+        r = s.get('%scurrent_user' % self.http)
+        returned_dict = json.loads(r.content)
+        expected = dict()
+        expected['user'] = 'user'
+        self.assertEqual(returned_dict, expected)
 
         # When not logged in
-        result = self.vncServerManager.get_current_user()
+        r = requests.get('%scurrent_user' % self.http)
+        returned_dict = json.loads(r.content)
         expected = dict()
-        self.assertEqual(result, expected)
+        self.assertEqual(returned_dict, expected)
 
     # Test login
     def testLogin(self):
@@ -972,6 +1021,7 @@ def rbac_suite():
     suite.addTest(TestRBAC('testHasPermission'))
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
+    suite.addTest(TestRBAC('testAddCluster'))
     suite.addTest(TestRBAC('testCurrentUser'))
     suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
