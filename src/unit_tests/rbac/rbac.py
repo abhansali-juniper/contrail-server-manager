@@ -312,6 +312,46 @@ class TestRBAC(unittest.TestCase):
             username='user')
         self.assertEqual(result, expected)
 
+    # Test _delete_row
+    def testDeleteRow(self):
+        # Where statement
+        image_data = dict()
+        image_data['id'] = 'dummy_image'
+        self.vncServerManager._serverDb.add_image(image_data=image_data,
+                                                  username='user')
+        self.vncServerManager._serverDb._delete_row(
+            table_name='image_table',
+            match_dict={'where': 'id = \'dummy_image\''}, username='user')
+        result = self.vncServerManager._serverDb._get_items(
+            match_dict={'id': 'dummy_image'}, table_name='image_table',
+            always_fields=['id'], username='user')
+        self.assertEqual(result, [])
+
+        # Standard select statement
+        image_data = dict()
+        image_data['id'] = 'dummy_image'
+        self.vncServerManager._serverDb.add_image(image_data=image_data,
+                                                  username='user')
+        self.vncServerManager._serverDb._delete_row(
+            table_name='image_table',
+            match_dict={'id': 'dummy_image'}, username='user')
+        result = self.vncServerManager._serverDb._get_items(
+            match_dict={'id': 'dummy_image'}, table_name='image_table',
+            always_fields=['id'], username='user')
+        self.assertEqual(result, [])
+
+        # No select statement
+        image_data = dict()
+        image_data['id'] = 'dummy_image'
+        self.vncServerManager._serverDb.add_image(image_data=image_data,
+                                                  username='user')
+        self.vncServerManager._serverDb._delete_row(table_name='image_table',
+                                                    username='user')
+        result = self.vncServerManager._serverDb._get_items(
+            match_dict={'id': 'dummy_image'}, table_name='image_table',
+            always_fields=['id'], username='user')
+        self.assertEqual(result, [])
+
     # Test determine_restrictions
     def testDetermineRestrictions(self):
         # When admin
@@ -928,6 +968,7 @@ class TestRBAC(unittest.TestCase):
 def rbac_suite():
     suite = unittest.TestSuite()
     suite.addTest(TestRBAC('testGetItems'))
+    suite.addTest(TestRBAC('testDeleteRow'))
     suite.addTest(TestRBAC('testHasPermission'))
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
