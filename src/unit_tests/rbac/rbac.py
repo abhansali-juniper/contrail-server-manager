@@ -285,6 +285,33 @@ class TestRBAC(unittest.TestCase):
             result = self.vncServerManager.sufficient_perms(role='user')
             self.assertTrue(result)
 
+    # Test _get_items
+    def testGetItems(self):
+        # Add dummy image for this test
+        image_data = dict()
+        image_data['id'] = 'dummy_image'
+        self.vncServerManager._serverDb.add_image(image_data=image_data,
+                                                  username='user')
+
+        expected = [{'id': 'dummy_image'}]
+        # No select statement
+        result = self.vncServerManager._serverDb._get_items(
+            table_name='image_table', always_fields=['id'], username='user')
+        self.assertEqual(result, expected)
+
+        # Standard select statement
+        result = self.vncServerManager._serverDb._get_items(
+            match_dict={'id': 'dummy_image'}, table_name='image_table',
+            always_fields=['id'], username='user')
+        self.assertEqual(result, expected)
+
+        # Where statement
+        result = self.vncServerManager._serverDb._get_items(
+            table_name='image_table',
+            match_dict={'where': 'id = \'dummy_image\''}, always_fields=['id'],
+            username='user')
+        self.assertEqual(result, expected)
+
     # Test determine_restrictions
     def testDetermineRestrictions(self):
         # When admin
@@ -900,6 +927,7 @@ class TestRBAC(unittest.TestCase):
 # TestSuite for RBAC
 def rbac_suite():
     suite = unittest.TestSuite()
+    suite.addTest(TestRBAC('testGetItems'))
     suite.addTest(TestRBAC('testHasPermission'))
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
