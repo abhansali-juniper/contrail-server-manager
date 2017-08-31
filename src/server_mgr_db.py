@@ -505,7 +505,7 @@ class ServerMgrDb:
                         select_str += " OR %s LIKE '%%''*''%%'" % perms
                         if perms == 'R':
                             select_str += " OR RW LIKE '%%''%s''%%'" % username
-                        select_str += " OR RW LIKE '%%''*''%%'" % perms
+                        select_str += " OR RW LIKE '%%''*''%%'"
                 else:
                     if match_dict:
                         match_list = ["%s = \'%s\'" %(
