@@ -436,6 +436,73 @@ class TestRBAC(unittest.TestCase):
         self.assertEqual(returned_data['R'], expected_perms)
         self.assertEqual(returned_data['RW'], expected_perms)
 
+    # Test add_server
+    def testAddServer(self):
+        # When don't have correct permissions
+        # First create user without permissions
+        data = dict()
+        role_dict = dict()
+        role_dict["role"] = "temp_role"
+        role_dict["R"] = "[]"
+        role_dict["RW"] = "['cluster_table']"
+        role_dict["level"] = 20
+        data["role"] = [role_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        s.put('%srole' % self.http, data=json.dumps(data),
+              headers={'content-type': 'application/json'})
+        user_dict = dict()
+        user_dict["username"] = "temp_user"
+        user_dict["password"] = "c0ntrail123"
+        user_dict["role"] = "temp_role"
+        data = dict()
+        data["user"] = [user_dict]
+        s, _ = login('admin', 'c0ntrail123', self.http)
+        s.put('%suser' % self.http, data=json.dumps(data),
+              headers={'content-type': 'application/json'})
+
+        # Now attempt to add a dummy server without permissions
+        server_data = dict()
+        server_data['id'] = 'dummy_server'
+        result = self.vncServerManager._serverDb.add_server(
+            server_data=server_data,
+            user_obj=self.vncServerManager._backend.user('temp_user'))
+        self.assertEqual(result, -1)
+
+        # When have correct permissions
+        server_data = dict()
+        server_data['id'] = 'dummy_server'
+        result = self.vncServerManager._serverDb.add_server(
+            server_data=server_data,
+            user_obj=self.vncServerManager._backend.user('user'))
+        self.assertEqual(result, 0)
+
+    # Test add_image
+    def testAddImage(self):
+        # As admin
+        image_data = dict()
+        image_data['id'] = 'dummy_image'
+        self.vncServerManager._serverDb.add_image(
+            image_data=image_data, admin=True)
+        result = self.vncServerManager._serverDb.get_image(
+            match_dict={'id': 'dummy_image'}, field_list=["R", "RW"])
+        self.assertEqual(len(result), 1)
+        returned_data = result[0]
+        self.assertEqual(returned_data['R'], "['*']")
+        self.assertEqual(returned_data['RW'], '')
+
+        # As regular user
+        image_data = dict()
+        image_data['id'] = 'dummy_image2'
+        self.vncServerManager._serverDb.add_image(
+            image_data=image_data, username='user')
+        result = self.vncServerManager._serverDb.get_image(
+            match_dict={'id': 'dummy_image2'}, field_list=["R", "RW"])
+        self.assertEqual(len(result), 1)
+        returned_data = result[0]
+        expected_perm = "['user']"
+        self.assertEqual(returned_data['R'], expected_perm)
+        self.assertEqual(returned_data['RW'], expected_perm)
+
     # Test current_user
     def testCurrentUser(self):
         # When logged in
@@ -1022,6 +1089,8 @@ def rbac_suite():
     suite.addTest(TestRBAC('testSufficientPerms'))
     suite.addTest(TestRBAC('testDetermineRestrictions'))
     suite.addTest(TestRBAC('testAddCluster'))
+    suite.addTest(TestRBAC('testAddServer'))
+    suite.addTest(TestRBAC('testAddImage'))
     suite.addTest(TestRBAC('testCurrentUser'))
     suite.addTest(TestRBAC('testLogin'))
     suite.addTest(TestRBAC('testLogout'))
