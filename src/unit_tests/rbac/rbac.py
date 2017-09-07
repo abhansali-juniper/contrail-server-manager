@@ -27,6 +27,15 @@ from server_mgr_main import VncServerManager
 
 # Class to mock VncServerManager
 class mock_VncServerManager(VncServerManager):
+    def create_user(self, username, password, role):
+        tstamp = str(datetime.datetime.utcnow())
+        h = self._backend._hash(username, password)
+        h = h.decode('ascii')
+        user_data = {'username': username, 'role': role, 'hash': h,
+                     'email_addr': '', 'desc': '', 'creation_date': tstamp,
+                     'last_login': tstamp}
+        self._serverDb.add_user(user_data=user_data)
+
     def __init__(self, db_file_name, access_log):
         # Logger
         self._smgr_log = ServerMgrlogger()
@@ -56,28 +65,10 @@ class mock_VncServerManager(VncServerManager):
         self._serverDb.add_role(role_data=role_data)
 
         # Create admin user
-        username = 'admin'
-        password = 'c0ntrail123'
-        role = 'administrator'
-        tstamp = str(datetime.datetime.utcnow())
-        h = self._backend._hash(username, password)
-        h = h.decode('ascii')
-        user_data = {'username': username, 'role': role, 'hash': h,
-                     'email_addr': '', 'desc': '', 'creation_date': tstamp,
-                     'last_login': tstamp}
-        self._serverDb.add_user(user_data=user_data)
+        self.create_user('admin', 'c0ntrail123', 'administrator')
 
         # Create user user
-        username = 'user'
-        password = 'c0ntrail123'
-        role = 'user'
-        tstamp = str(datetime.datetime.utcnow())
-        h = self._backend._hash(username, password)
-        h = h.decode('ascii')
-        user_data = {'username': username, 'role': role, 'hash': h,
-                     'email_addr': '', 'desc': '', 'creation_date': tstamp,
-                     'last_login': tstamp}
-        self._serverDb.add_user(user_data=user_data)
+        self.create_user('user', 'c0ntrail123', 'user')
 
         # Session
         config = {
